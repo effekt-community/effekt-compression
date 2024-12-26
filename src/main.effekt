@@ -1,5 +1,17 @@
 module main // must be named same as the file!
 
 import src/lib
+import args
 
-def main(): Unit = println(helloWorld())
+def main(): Unit = {
+    println(run("README.md"))
+
+    /*val paths: List[String] = commandLineArgs()
+    if (paths.size == 0) { 
+        println("No file specified, run `cmp [FILENAME]*`")
+    } else {
+        with on[MissingValue[String]].report
+        val file: String = paths.get(0)
+
+    }*/
+}
