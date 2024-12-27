@@ -2,9 +2,41 @@ module src/test
 
 import test
 import src/lib
+import src/utils/ascii_dictionary
+import src/utils/huffman
 
 def main() = mainSuite("lib") {
-  test("Hello world") {
-    assertEqual(helloWorld(), "Hello, world!")
+  test("AsciiDictionaryInt_Init") {
+    var map = emptyDict[Int]()
+
+    val (keys, size) = map.keys()
+    assertEqual(size, 0)
+
+    map.update('a'.toInt.toByte, Some(1))
+    map.update('c'.toInt.toByte, Some(3))
+
+    val (keys, size) = map.keys()
+    assertEqual(size, 2)
+  }
+
+  test("AsciiDictionaryString_Get") {
+    var map = emptyDict[String]()
+    map.update('a'.toInt.toByte, Some("0101"))
+    map.update('c'.toInt.toByte, Some("1100"))
+
+    assertEqual(map.get('a'.toInt.toByte), Some("0101"))
+    assertEqual(map.get('c'.toInt.toByte), Some("1100"))
+  }
+
+  test("HuffmanTree_Serialize") {
+    val tree = Node(11, Leaf('w'.toInt.toByte, 5), Node(6, Leaf('a'.toInt.toByte, 3), Node(3, Leaf('e'.toInt.toByte, 1), Leaf('x'.toInt.toByte, 2))))
+    val serialized_tree = huffman_serialize(tree)
+    assertEqual(serialized_tree, "01w01a01e1x")
+  }
+
+  test("HuffmanTree_Deserialize") {
+    val deserialized_tree = huffman_deserialize("01w01a01e1x")
+    val tree = Node(0, Leaf('w'.toInt.toByte, 0), Node(0, Leaf('a'.toInt.toByte, 0), Node(0, Leaf('e'.toInt.toByte, 0), Leaf('x'.toInt.toByte, 0))))
+    assertEqual(deserialized_tree, tree)
   }
 }
