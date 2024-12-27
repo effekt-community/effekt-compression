@@ -1,25 +1,25 @@
-import mutable/map
 import stream
 import io
 import io/error
 import src/utils/heap
+import src/utils/ascii_dictionary
 
 type HuffmanTree {
-  Leaf(char: Char, freq: Int)
+  Leaf(char: Byte, freq: Int)
   Node(freq: Int, l: HuffmanTree, r: HuffmanTree)
 }
 
 ///
 /// Makes character-frequency map (dictionary) from stream
 /// 
-def characterFrequencies(map: Map[Char, Int]): Unit / read[Byte] = {
+def characterFrequencies(dict: AsciiDictionary[Int]): Unit / read[Byte] = {
     def go(): Unit = try {
-        val readChar = decodeChar()
+        val readByte = do read[Byte]()
 
-        val result = map.get(readChar)
+        val result = dict.get(readByte)
         result match {
-            case Some(count) => map.update(readChar, count + 1)
-            case None() => map.update(readChar, 1)
+            case Some(count) => dict.update(readByte, Some(count + 1))
+            case None() => dict.update(readByte, Some(1))
         }
 
         go()
@@ -30,8 +30,8 @@ def characterFrequencies(map: Map[Char, Int]): Unit / read[Byte] = {
     go()
 }
 
-def characterFrequenciesFromFile(filename: String): Map[Char, Int] = {
-    var map = emptyMap[Char, Int]()
+def characterFrequenciesFromFile(filename: String): AsciiDictionary[Int] = {
+    var map = emptyDict[Int]()
 
     report[IOError] {
         readFile(filename) {
@@ -70,17 +70,17 @@ def treePrioQueue(): Heap[HuffmanTree] = {
     heap[HuffmanTree](treeCmp) 
 }
 
-def huffmanCodes(root: HuffmanTree): Map[Char, String] = {
-    var map = emptyMap[Char, String]()
+def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
+    var map = emptyDict[String]()
 
     var hufCode = ""
 
     def go(node: HuffmanTree, code: String): Unit = {
         node match {
-            case Leaf(char, _) => map.update(char, code)
+            case Leaf(char, _) => map.update(char, Some(code))
             case Node(_, l, r) => {
                 go(l, code ++ "0")
-                go(l, code ++ "1")
+                go(r, code ++ "1")
             }
         }
     }
@@ -90,9 +90,52 @@ def huffmanCodes(root: HuffmanTree): Map[Char, String] = {
     map
 }
 
-def writeHeader(root: HuffmanTree): Unit = {()}
+def huffman_serialize(root: HuffmanTree): String = {
+    var preorder_str = ""
 
-def writeContents(map: Map[Char, String]): Unit = {
+    def preorder(node: HuffmanTree, treeString: String): String = {
+        var result = treeString
+        node match {
+            case Leaf(char, freq) => result ++ "1" ++ char.toInt.toChar.show
+            case Node(_, l, r) => 
+                result = result ++ "0"
+                result = preorder(l, result)
+                result = preorder(r, result)
+                result
+        }
+    }
+    preorder(root, preorder_str)
+}
+
+def huffman_deserialize(treeString: String): HuffmanTree = {
+    def build_tree(index: Int): (HuffmanTree, Int) = {
+        var newIndex = index
+        // if (index >= treeString.size) {
+        //     None, index
+        // }
+        var char = treeString.unsafeCharAt(newIndex)
+        newIndex = newIndex + 1
+        if (char == '1') {
+            char = treeString.unsafeCharAt(newIndex)
+            newIndex = newIndex + 1
+            (Leaf(char.toInt.toByte, 0), newIndex)
+        } else {
+            val (left, newIndex2) = build_tree(newIndex)
+            val (right, newIndex3) = build_tree(newIndex2)
+            (Node(0, left, right), newIndex3)
+        }
+    }
+
+    val (root, _) = build_tree(0)
+    root
+}
+
+def writeHeader(root: HuffmanTree): Unit = {
+    val serializedTree = huffman_serialize(root)
+    ()
+}
+
+def writeContents(dict: AsciiDictionary[String]): Unit = {
     
 
     ()
@@ -102,10 +145,15 @@ def compress(filename: String): Unit = {
     val frequencyMap = characterFrequenciesFromFile(filename)
     val prioQueue = treePrioQueue()
 
-    frequencyMap.keys().foreach{
-      char => 
-        var freq = frequencyMap.unsafeGet(char)
-        prioQueue.insert(Leaf(char, freq))
+    val (keys, size) = frequencyMap.keys()
+
+    each(0, size) { i =>
+        val char = keys.unsafeGet(i)
+        var value = frequencyMap.unsafeGet(char)
+        value match {
+          case Some(freq) => prioQueue.insert(Leaf(char, freq))
+          case None() => ()
+        }
     }
 
     while (prioQueue.size() > 1) {
@@ -119,7 +167,7 @@ def compress(filename: String): Unit = {
         prioQueue.insert(Node(freq1 + freq2, node1, node2))
     }
 
-    var root = Leaf('a', -1)
+    var root = Leaf('a'.toInt.toByte, -1)
     report[OutOfBounds] {
         root = prioQueue.findMin()
         ()
