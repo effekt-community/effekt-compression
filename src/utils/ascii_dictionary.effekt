@@ -1,0 +1,39 @@
+import array
+import src/utils/resizable_array
+
+record AsciiDictionary[T](rawContent: Array[Option[T]]/*, entryCount: Array[Int]*/)
+
+def emptyDict[T](): AsciiDictionary[T] = 
+    //AsciiDictionary[T](array[Option[T]](256, None()), array[Int](1, 0))
+    AsciiDictionary[T](array[Option[T]](256, None()))
+
+def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
+    try {
+        dict.rawContent.get(key.toInt)
+    } with Exception[OutOfBounds]{
+        def raise(exception: OutOfBounds, msg: String) = None()
+    }
+
+def unsafeGet[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
+    dict.rawContent.unsafeGet(key.toInt)
+
+def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit = {
+    with on[OutOfBounds].report
+    dict.rawContent.set(key.toInt, value)
+}
+
+///
+/// Returns the array containing all keys and size of the array,
+/// because it is possible that  
+/// 
+def keys[T](dict: AsciiDictionary[T]): (Array[Byte], Int) = {
+    val arr = resizableArray[Byte]()
+    var lastIdx = -1
+    dict.rawContent.foreachIndex {
+        (index, value) => value match {
+            case None() => ()
+            case Some(x) => lastIdx = arr.add(index.toByte); () 
+        }
+    }
+    (arr.rawContentPtr.get[Array[Byte]](), lastIdx + 1)
+}
