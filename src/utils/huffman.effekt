@@ -149,8 +149,8 @@ def compressReaderIntoStream() = {
         val (frequencyMap, byteCount, readData) = characterCompressionReader()
         if (byteCount == 0) {
             // no more data to read => we are done
+            println("No more data to read, terminating compression")
             l.break()
-            println("No more data to read, terminating compression")    
         } else {
             val root = build_tree(frequencyMap)
             val huffmanCodesTable = huffmanCodes(root)
