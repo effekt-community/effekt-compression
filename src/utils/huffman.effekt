@@ -3,18 +3,38 @@ import io
 import io/error
 import src/utils/heap
 import src/utils/ascii_dictionary
+import bytearray
+import src/utils/stream_io
+import src/utils/huffman_tree
 
-type HuffmanTree {
-  Leaf(char: Byte, freq: Int)
-  Node(freq: Int, l: HuffmanTree, r: HuffmanTree)
-}
+/// Huffman block structure:
+/// +----------------------------------------------+----------------------------------------+------------------------------------------------+--------------------+
+/// | 4 bytes - header length (in bytes)           | 4 bytes - number of encoded characters | Header                                         | Encoded content    |
+/// |                                              |                                        | Last byte of header contains, how many bits    |                    |
+/// |                                              |                                        | in the second last byte are part of the tree   |                    |
+/// |                                              |                                        |                                                |                    |
+/// +----------------------------------------------+----------------------------------------+------------------------------------------------+--------------------+
+
+record HeaderStreamData(serializedTree: String, contentCharacterCount: Int, headerByteLength: Int, bitsInLastTreeByte: Int)
+record HeaderData(root: HuffmanTree, contentCharacterCount: Int)
+record ContentsData(table: AsciiDictionary[String], content: ByteArray)
 
 ///
-/// Makes character-frequency map (dictionary) from stream
+/// Read chunk of the stream and make a character-frequency map (dictionary)
+/// from it. Return the map, read chunk and its length.
 /// 
-def characterFrequencies(dict: AsciiDictionary[Int]): Unit / read[Byte] = {
+def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[Byte] = {
+    var dict = emptyDict[Int]()
+
+    val chunkSize = 32768 // 2 ** 15 bytes
+    val buffer = bytearray::allocate(chunkSize)
+    var offset = 0
+
     def go(): Unit = try {
         val readByte = do read[Byte]()
+
+        buffer.unsafeSet(offset, readByte)
+        offset = offset + 1
 
         val result = dict.get(readByte)
         result match {
@@ -22,161 +42,122 @@ def characterFrequencies(dict: AsciiDictionary[Int]): Unit / read[Byte] = {
             case None() => dict.update(readByte, Some(1))
         }
 
-        go()
+        // read only until we have space in the buffer
+        if (offset < chunkSize) {
+            go()
+        } else {
+            ()
+        }
     } with stop {
         ()
     }
 
     go()
+    (dict, offset, buffer)
 }
 
-def characterFrequenciesFromFile(filename: String): AsciiDictionary[Int] = {
-    var map = emptyDict[Int]()
-
-    report[IOError] {
-        readFile(filename) {
-            characterFrequencies(map)
-        }
-    }
-
-    map
-}
-
-def getFrequency(node: HuffmanTree) = {
-    node match {
-        case Node(f1, _, _) => {
-            f1
-        }
-        case Leaf(_, f1) => {
-            f1
-        }
-    }
-}
-
-def treePrioQueue(): Heap[HuffmanTree] = {
-    def treeCmp(t1: HuffmanTree, t2: HuffmanTree) = {
-        var freq1 = getFrequency(t1)
-        var freq2 = getFrequency(t2)
-
-        if (freq1 > freq2) {
-            Greater()
-        } else if (freq1 < freq2) {
-            Less()
-        } else {
-            Equal()
-        }
-    }
-
-    heap[HuffmanTree](treeCmp) 
-}
-
-def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
-    var map = emptyDict[String]()
-
-    var hufCode = ""
-
-    def go(node: HuffmanTree, code: String): Unit = {
-        node match {
-            case Leaf(char, _) => map.update(char, Some(code))
-            case Node(_, l, r) => {
-                go(l, code ++ "0")
-                go(r, code ++ "1")
+///
+/// Return tuple (header length in bytes, amount of bits in the second last byte used by the tree)
+/// 
+def get_header_metadata(serializedTree: String): (Int, Int) = {
+    var bitLength = 0
+    each(0, serializedTree.length) {
+        i => 
+            serializedTree.unsafeCharAt(i) match {
+                case '0' => bitLength = bitLength + 1
+                case '1' => bitLength = bitLength + 1
+                case _ => bitLength = bitLength + 8
             }
-        }
     }
 
-    go(root, hufCode)
-
-    map
-}
-
-def huffman_serialize(root: HuffmanTree): String = {
-    var preorder_str = ""
-
-    def preorder(node: HuffmanTree, treeString: String): String = {
-        var result = treeString
-        node match {
-            case Leaf(char, freq) => result ++ "1" ++ char.toInt.toChar.show
-            case Node(_, l, r) => 
-                result = result ++ "0"
-                result = preorder(l, result)
-                result = preorder(r, result)
-                result
-        }
+    var byteLength = bitLength / 8
+    var leftovers = mod(bitLength, 8)
+    leftovers match {
+        case 0 => 
+            byteLength = byteLength + 1
+            leftovers = 8
+        case _ => byteLength = byteLength + 2
     }
-    preorder(root, preorder_str)
+    (byteLength, leftovers)
 }
 
-def huffman_deserialize(treeString: String): HuffmanTree = {
-    def build_tree(index: Int): (HuffmanTree, Int) = {
-        var newIndex = index
-        // if (index >= treeString.size) {
-        //     None, index
-        // }
-        var char = treeString.unsafeCharAt(newIndex)
-        newIndex = newIndex + 1
-        if (char == '1') {
-            char = treeString.unsafeCharAt(newIndex)
-            newIndex = newIndex + 1
-            (Leaf(char.toInt.toByte, 0), newIndex)
+
+def treeStream(serializedTree: String) = {
+    each(0, serializedTree.length) {
+        i => 
+            serializedTree.unsafeCharAt(i) match {
+                case '0' => do writeBit(false)
+                case '1' => do writeBit(true)
+                case char => do writeByte(char.toInt.toByte)
+            }
+    }
+}
+
+def writeHeaderStream(data: HeaderStreamData): Unit / emit[Byte] = {
+    with streamWriter
+
+    integerToBytesStream(data.headerByteLength)
+    integerToBytesStream(data.contentCharacterCount)
+
+    treeStream(data.serializedTree)
+    do flush()  // ensure to fill the bit padding
+    integerToBytesStream(data.bitsInLastTreeByte)
+}
+
+def writeCodeStream(code: String) = {
+    each(0, code.length) {
+        i => 
+            code.unsafeCharAt(i) match {
+                case '0' => do writeBit(false)
+                case '1' => do writeBit(true)
+                case _ => ()
+            }
+    }
+}
+
+def writeContentsStream(contentsData: ContentsData): Unit / emit[Byte] = {
+    with streamWriter
+    contentsData.content.foreach() {
+        byte => 
+            var value = contentsData.table.unsafeGet(byte)
+            value match {
+                case Some(code) => writeCodeStream(code)
+                case None() => ()
+            }
+    }
+
+    ()
+}
+
+
+def get_header_stream_data(headerData: HeaderData): HeaderStreamData = {
+    val serializedTree = huffman_serialize(headerData.root)
+    val (byteLength, bitsInLastByte) = get_header_metadata(serializedTree)
+
+    HeaderStreamData(serializedTree, headerData.contentCharacterCount, byteLength, bitsInLastByte)
+}
+
+def writeCompressedStream(headerData: HeaderData, contentsData: ContentsData): Unit / emit[Byte] = {
+    val headerStreamData = get_header_stream_data(headerData)
+    writeHeaderStream(headerStreamData)
+    writeContentsStream(contentsData)
+}
+
+def compressReaderIntoStream() = {
+    loop { {l} =>
+        println("Starting Huffman block compression...")
+        val (frequencyMap, byteCount, readData) = characterCompressionReader()
+        if (byteCount == 0) {
+            // no more data to read => we are done
+            l.break()
+            println("No more data to read, terminating compression")    
         } else {
-            val (left, newIndex2) = build_tree(newIndex)
-            val (right, newIndex3) = build_tree(newIndex2)
-            (Node(0, left, right), newIndex3)
+            val root = build_tree(frequencyMap)
+            val huffmanCodesTable = huffmanCodes(root)
+
+            writeCompressedStream(HeaderData(root, byteCount), ContentsData(huffmanCodesTable, readData))
+
+            println("Huffman block compression successful")
         }
     }
-
-    val (root, _) = build_tree(0)
-    root
-}
-
-def writeHeader(root: HuffmanTree): Unit = {
-    val serializedTree = huffman_serialize(root)
-    ()
-}
-
-def writeContents(dict: AsciiDictionary[String]): Unit = {
-    
-
-    ()
-}
-
-def compress(filename: String): Unit = {
-    val frequencyMap = characterFrequenciesFromFile(filename)
-    val prioQueue = treePrioQueue()
-
-    val (keys, size) = frequencyMap.keys()
-
-    each(0, size) { i =>
-        val char = keys.unsafeGet(i)
-        var value = frequencyMap.unsafeGet(char)
-        value match {
-          case Some(freq) => prioQueue.insert(Leaf(char, freq))
-          case None() => ()
-        }
-    }
-
-    while (prioQueue.size() > 1) {
-        with on[OutOfBounds].report
-        val node1 = prioQueue.deleteMin()
-        val node2 = prioQueue.deleteMin()
-
-        var freq1 = getFrequency(node1)
-        var freq2 = getFrequency(node2)
-
-        prioQueue.insert(Node(freq1 + freq2, node1, node2))
-    }
-
-    var root = Leaf('a'.toInt.toByte, -1)
-    report[OutOfBounds] {
-        root = prioQueue.findMin()
-        ()
-    }
-
-    val huffmanCodesMap = huffmanCodes(root)
-
-    writeHeader(root)
-    writeContents(huffmanCodesMap)
-
-    println("Compression successful")
 }
