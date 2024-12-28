@@ -1,0 +1,129 @@
+import src/utils/ascii_dictionary
+import src/utils/heap
+
+type HuffmanTree {
+    Leaf(char: Byte, freq: Int)
+    Node(freq: Int, l: HuffmanTree, r: HuffmanTree)
+}
+
+def getFrequency(node: HuffmanTree) = {
+    node match {
+        case Node(f1, _, _) => {
+            f1
+        }
+        case Leaf(_, f1) => {
+            f1
+        }
+    }
+}
+
+def treePrioQueue(): Heap[HuffmanTree] = {
+    def treeCmp(t1: HuffmanTree, t2: HuffmanTree) = {
+        var freq1 = getFrequency(t1)
+        var freq2 = getFrequency(t2)
+
+        if (freq1 > freq2) {
+            Greater()
+        } else if (freq1 < freq2) {
+            Less()
+        } else {
+            Equal()
+        }
+    }
+
+    heap[HuffmanTree](treeCmp) 
+}
+
+
+def build_tree(frequencyMap: AsciiDictionary[Int]): HuffmanTree = {
+    val prioQueue = treePrioQueue()
+
+    val (keys, size) = frequencyMap.keys()
+
+    each(0, size) { i =>
+        val char = keys.unsafeGet(i)
+        var value = frequencyMap.unsafeGet(char)
+        value match {
+          case Some(freq) => prioQueue.insert(Leaf(char, freq))
+          case None() => ()
+        }
+    }
+
+    while (prioQueue.size() > 1) {
+        with on[OutOfBounds].report
+        val node1 = prioQueue.deleteMin()
+        val node2 = prioQueue.deleteMin()
+
+        var freq1 = getFrequency(node1)
+        var freq2 = getFrequency(node2)
+
+        prioQueue.insert(Node(freq1 + freq2, node1, node2))
+    }
+
+    var root = Leaf('a'.toInt.toByte, -1)
+    report[OutOfBounds] {
+        root = prioQueue.findMin()
+    }
+
+    root
+}
+
+def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
+    var map = emptyDict[String]()
+
+    var hufCode = ""
+
+    def go(node: HuffmanTree, code: String): Unit = {
+        node match {
+            case Leaf(char, _) => map.update(char, Some(code))
+            case Node(_, l, r) => {
+                go(l, code ++ "0")
+                go(r, code ++ "1")
+            }
+        }
+    }
+
+    go(root, hufCode)
+
+    map
+}
+
+def huffman_serialize(root: HuffmanTree): String = {
+    var preorder_str = ""
+
+    def preorder(node: HuffmanTree, treeString: String): String = {
+        var result = treeString
+        node match {
+            case Leaf(char, freq) => result ++ "1" ++ char.toInt.toChar.show
+            case Node(_, l, r) => 
+                result = result ++ "0"
+                result = preorder(l, result)
+                result = preorder(r, result)
+                result
+        }
+    }
+    preorder(root, preorder_str)
+}
+
+def huffman_deserialize(treeString: String): HuffmanTree = {
+    def build_tree(index: Int): (HuffmanTree, Int) = {
+        var newIndex = index
+        // if (index >= treeString.size) {
+        //     None, index
+        // }
+        var char = treeString.unsafeCharAt(newIndex)
+        newIndex = newIndex + 1
+        if (char == '1') {
+            char = treeString.unsafeCharAt(newIndex)
+            newIndex = newIndex + 1
+            (Leaf(char.toInt.toByte, 0), newIndex)
+        } else {
+            val (left, newIndex2) = build_tree(newIndex)
+            val (right, newIndex3) = build_tree(newIndex2)
+            (Node(0, left, right), newIndex3)
+        }
+    }
+
+    val (root, _) = build_tree(0)
+    root
+}
