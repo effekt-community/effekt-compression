@@ -1,10 +1,15 @@
 module main // must be named same as the file!
 
-import src/lib
 import args
+import src/lib
+import stream
+import io
+import io/error
 
 def main(): Unit = {
-    println(run("README.md"))
+    //println("README.md")
+    
+    huffmanCompressFile("README.md", "README.bin")
 
     /*val paths: List[String] = commandLineArgs()
     if (paths.size == 0) { 
