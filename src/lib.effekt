@@ -3,30 +3,13 @@ module src/lib
 import stream
 import io
 import io/error
-import mutable/map
+import src/utils/huffman
 
-def helloWorld(): String = "Hello, world!"
+def huffmanCompressFile(sourceFilename: String, targetFilename: String): Unit = {
+    with report[IOError]
+    with readFile(sourceFilename)
+    with writeFile(targetFilename)
 
-
-
-def run(filename: String): String = {
-  var x = ""
-  report[IOError] {
-    readFile(filename) {
-    var result = ""
-    def go(): Unit = try {
-      val readByte = decodeChar() // do read()
-      result = result ++ readByte.show()
-      //println(readByte)
-      go()
-    } with stop {
-      ()
-    }
-    go()
-    x = result
-    }
-  }
-  
-  x
+    compressReaderIntoStream()
 }
 
