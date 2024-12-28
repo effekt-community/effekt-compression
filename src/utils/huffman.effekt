@@ -8,12 +8,12 @@ import src/utils/stream_io
 import src/utils/huffman_tree
 
 /// Huffman block structure:
-/// +----------------------------------------------+----------------------------------------+------------------------------------------------+--------------------+
-/// | 4 bytes - header length (in bytes)           | 4 bytes - number of encoded characters | Header                                         | Encoded content    |
-/// |                                              |                                        | Last byte of header contains, how many bits    |                    |
-/// |                                              |                                        | in the second last byte are part of the tree   |                    |
-/// |                                              |                                        |                                                |                    |
-/// +----------------------------------------------+----------------------------------------+------------------------------------------------+--------------------+
+/// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+
+/// | 4 bytes - header length (in bytes)           | 1 byte - how many bits in the second | 4 bytes - number of encoded characters | Header                  | Encoded content    |
+/// |                                              | last byte are part of the tree       |                                        |                         |                    |
+/// |                                              |                                      |                                        |                         |                    |
+/// |                                              |                                      |                                        |                         |                    |
+/// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+
 
 record HeaderStreamData(serializedTree: String, contentCharacterCount: Int, headerByteLength: Int, bitsInLastTreeByte: Int)
 record HeaderData(root: HuffmanTree, contentCharacterCount: Int)
@@ -93,15 +93,13 @@ def treeStream(serializedTree: String) = {
     }
 }
 
-def writeHeaderStream(data: HeaderStreamData): Unit / emit[Byte] = {
-    with streamWriter
-
+def writeHeaderStream(data: HeaderStreamData) = {
     integerToBytesStream(data.headerByteLength)
+    do writeByte(data.bitsInLastTreeByte.toByte)
     integerToBytesStream(data.contentCharacterCount)
 
     treeStream(data.serializedTree)
-    do flush()  // ensure to fill the bit padding
-    integerToBytesStream(data.bitsInLastTreeByte)
+    do flush()  // bit padding
 }
 
 def writeCodeStream(code: String) = {
@@ -115,8 +113,7 @@ def writeCodeStream(code: String) = {
     }
 }
 
-def writeContentsStream(contentsData: ContentsData): Unit / emit[Byte] = {
-    with streamWriter
+def writeContentsStream(contentsData: ContentsData) = {
     contentsData.content.foreach() {
         byte => 
             var value = contentsData.table.unsafeGet(byte)
@@ -137,18 +134,21 @@ def get_header_stream_data(headerData: HeaderData): HeaderStreamData = {
     HeaderStreamData(serializedTree, headerData.contentCharacterCount, byteLength, bitsInLastByte)
 }
 
-def writeCompressedStream(headerData: HeaderData, contentsData: ContentsData): Unit / emit[Byte] = {
+def writeCompressedStream(headerData: HeaderData, contentsData: ContentsData) = {
     val headerStreamData = get_header_stream_data(headerData)
     writeHeaderStream(headerStreamData)
     writeContentsStream(contentsData)
 }
 
 def compressReaderIntoStream() = {
+    with streamWriter
     loop { {l} =>
         println("Starting Huffman block compression...")
         val (frequencyMap, byteCount, readData) = characterCompressionReader()
         if (byteCount == 0) {
             // no more data to read => we are done
+            // make sure you write the last part of the last block!
+            do flush()
             println("No more data to read, terminating compression")
             l.break()
         } else {
