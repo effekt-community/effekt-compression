@@ -3,7 +3,7 @@ module src/test
 import test
 import src/lib
 import src/utils/ascii_dictionary
-import src/utils/huffman
+import src/utils/huffman_tree
 
 def main() = mainSuite("lib") {
   test("AsciiDictionaryInt_Init") {
