@@ -1,0 +1,89 @@
+import stream
+
+
+interface StreamWriter {
+    def writeBit(bit: Bool): Unit / emit[Byte]
+    def writeByte(byte: Byte): Unit / emit[Byte]
+    def flush(): Unit / emit[Byte]
+}
+
+def streamWriter { prog: => Unit / StreamWriter }: Unit / emit[Byte] = {
+    var buffer = 0
+    var bitCount = 0
+
+    try { 
+        prog()
+        do flush() 
+    } with StreamWriter {
+
+        def writeBit(bit: Bool) = {
+            resume {
+                buffer = bitwiseShl(buffer, 1)
+                bitCount = bitCount + 1
+
+                bit match {
+                    case true => buffer = buffer + 1
+                    case _ => ()
+                }
+
+                if (bitCount == 8) {
+                    do emit[Byte](buffer.toByte)
+                    buffer = 0
+                    bitCount = 0
+                } else {
+                    ()
+                }
+            }
+        }
+
+        def writeByte(byte: Byte) = {
+            resume {
+                if (bitCount == 0) {
+                    do emit[Byte](byte) 
+                } else {
+                    val intByte = byte.toInt
+                    val freeBits = 8 - bitCount
+
+                    val bufferPart = bitwiseShr(intByte, bitCount)
+                    buffer = bitwiseOr(buffer, bufferPart)
+                    do emit[Byte](buffer.toByte)
+
+                    buffer = bitwiseShl(intByte ,freeBits)
+                }
+            }
+
+        }
+
+        def flush() = {
+            resume {
+                if (bitCount > 0) {
+                    do emit[Byte](buffer.toByte)
+                    buffer = 0
+                    bitCount = 0
+                } else {
+                    ()
+                }
+
+            }
+        }
+    }
+}
+
+def integerToBytesStream(integer: Int): Unit / emit[Byte] = {
+    val byte1_mask = 4278190080
+    val byte1 = bitwiseShr(bitwiseAnd(integer, byte1_mask), 24).toByte
+
+    val byte2_mask = 16711680
+    val byte2 = bitwiseShr(bitwiseAnd(integer, byte2_mask), 16).toByte
+
+    val byte3_mask = 65280
+    val byte3 = bitwiseShr(bitwiseAnd(integer, byte3_mask), 8).toByte
+
+    val byte4_mask = 255
+    val byte4 = bitwiseAnd(integer, byte4_mask).toByte
+    
+    do emit[Byte](byte1)
+    do emit[Byte](byte2)
+    do emit[Byte](byte3)
+    do emit[Byte](byte4)
+}
