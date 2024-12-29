@@ -8,14 +8,17 @@ import src/utils/stream_io
 import src/utils/huffman_tree
 
 /// Huffman block structure:
-/// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+
-/// | 4 bytes - header length (in bytes)           | 1 byte - how many bits in the second | 4 bytes - number of encoded characters | Header                  | Encoded content    |
-/// |                                              | last byte are part of the tree       |                                        |                         |                    |
-/// |                                              |                                      |                                        |                         |                    |
-/// |                                              |                                      |                                        |                         |                    |
-/// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+
+/// 
+/// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+----------------------------------+
+/// | 4 bytes - header length (in bytes)           | 3 bits - how many bits to ignore in  | 4 bytes - number of encoded characters | Header                  | Encoded content    | 3 bits - how many bits to ignore |
+/// |                                              | the last byte of the header          |                                        | serialized huffman tree |                    | before next block                |
+/// |                                              |                                      |                                        |                         |                    |                                  |
+/// |                                              |                                      |                                        |                         |                    |                                  |
+/// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+----------------------------------+
+///
+/// Numbers are in little endian - less significant bytes/bits first
 
-record HeaderStreamData(serializedTree: String, contentCharacterCount: Int, headerByteLength: Int, bitsInLastTreeByte: Int)
+record HeaderStreamData(serializedTree: String, contentCharacterCount: Int, headerByteLength: Int, bitsToIgnoreInLastHeaderByte: Int)
 record HeaderData(root: HuffmanTree, contentCharacterCount: Int)
 record ContentsData(table: AsciiDictionary[String], content: ByteArray)
 
@@ -72,13 +75,11 @@ def get_header_metadata(serializedTree: String): (Int, Int) = {
 
     var byteLength = bitLength / 8
     var leftovers = mod(bitLength, 8)
-    leftovers match {
-        case 0 => 
-            byteLength = byteLength + 1
-            leftovers = 8
-        case _ => byteLength = byteLength + 2
+    if (leftovers > 0) {
+        byteLength = byteLength + 1
     }
-    (byteLength, leftovers)
+    
+    (byteLength, 8 - leftovers)
 }
 
 
@@ -95,7 +96,7 @@ def treeStream(serializedTree: String) = {
 
 def writeHeaderStream(data: HeaderStreamData) = {
     integerToBytesStream(data.headerByteLength)
-    do writeByte(data.bitsInLastTreeByte.toByte)
+    numberToBitsStream(data.bitsToIgnoreInLastHeaderByte, 3)
     integerToBytesStream(data.contentCharacterCount)
 
     treeStream(data.serializedTree)
@@ -129,26 +130,26 @@ def writeContentsStream(contentsData: ContentsData) = {
 
 def get_header_stream_data(headerData: HeaderData): HeaderStreamData = {
     val serializedTree = huffman_serialize(headerData.root)
-    val (byteLength, bitsInLastByte) = get_header_metadata(serializedTree)
+    val (byteLength, bitsToIgnoreInLastHeaderByte) = get_header_metadata(serializedTree)
 
-    HeaderStreamData(serializedTree, headerData.contentCharacterCount, byteLength, bitsInLastByte)
+    HeaderStreamData(serializedTree, headerData.contentCharacterCount, byteLength, bitsToIgnoreInLastHeaderByte)
 }
 
 def writeCompressedStream(headerData: HeaderData, contentsData: ContentsData) = {
     val headerStreamData = get_header_stream_data(headerData)
-    writeHeaderStream(headerStreamData)
-    writeContentsStream(contentsData)
+
+    streamWriter {
+        writeHeaderStream(headerStreamData)
+        writeContentsStream(contentsData)
+    }
 }
 
 def compressReaderIntoStream() = {
-    with streamWriter
     loop { {l} =>
         println("Starting Huffman block compression...")
         val (frequencyMap, byteCount, readData) = characterCompressionReader()
         if (byteCount == 0) {
             // no more data to read => we are done
-            // make sure you write the last part of the last block!
-            do flush()
             println("No more data to read, terminating compression")
             l.break()
         } else {
