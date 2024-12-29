@@ -100,7 +100,7 @@ def writeHeaderStream(data: HeaderStreamData) = {
     integerToBytesStream(data.contentCharacterCount)
 
     treeStream(data.serializedTree)
-    do flush()  // bit padding
+    do flush()  // bit padding before the content
 }
 
 def writeCodeStream(code: String) = {
@@ -115,16 +115,21 @@ def writeCodeStream(code: String) = {
 }
 
 def writeContentsStream(contentsData: ContentsData) = {
+    var bitLength = 0
     contentsData.content.foreach() {
         byte => 
             var value = contentsData.table.unsafeGet(byte)
             value match {
-                case Some(code) => writeCodeStream(code)
+                case Some(code) => 
+                    bitLength = bitLength + code.length
+                    writeCodeStream(code)
                 case None() => ()
             }
     }
 
-    ()
+    bitLength = bitLength + 3  // 3 bits to store number of bits to ignore in the last byte
+    val leftovers = mod(bitLength, 8)
+    numberToBitsStream(leftovers, 3)
 }
 
 
@@ -159,6 +164,85 @@ def compressReaderIntoStream() = {
             writeCompressedStream(HeaderData(root, byteCount), ContentsData(huffmanCodesTable, readData))
 
             println("Huffman block compression successful")
+        }
+    }
+}
+
+/// ********************* \\\
+///     DECOMPRESSION     \\\
+/// ********************* \\\
+
+def headerReader() = {
+    val headerByteLength = bytesToIntegerReader()
+    val bitsToIgnoreInLastHeaderByte = bitsToNumberReader(3)
+    val contentCharacterCount = bytesToIntegerReader()
+
+    val headerBitLength = (headerByteLength * 8) - bitsToIgnoreInLastHeaderByte
+    var bitCounter = 0
+    var serializedTree = ""
+
+    while (bitCounter < headerBitLength) {
+        val bit = do readBit()
+        bit match {
+            case true => 
+                serializedTree = serializedTree ++ "1"
+                val char = do readByte()
+                serializedTree = serializedTree ++ char.toInt.toChar.toString
+                bitCounter = bitCounter + 8
+            case false => serializedTree = serializedTree ++ "0"
+        }
+        bitCounter = bitCounter + 1
+    }
+
+    // skip the padding bits
+    repeat(bitsToIgnoreInLastHeaderByte) {
+        val _ = do readBit()
+        ()
+    }
+
+    HeaderData(huffman_deserialize(serializedTree), contentCharacterCount)
+}
+
+def readContentsStream(headerData: HeaderData) = {
+    var characterCounter = 0
+
+    while (characterCounter < headerData.contentCharacterCount) {
+        var node = headerData.root
+        var done = false
+
+        while (not(done)) {
+            node match {
+                case Leaf(char, _) => 
+                    do writeByte(char)
+                    done = true
+                case Node(_, l, r) => 
+                    val bit = do readBit()
+                    node = if (bit) r else l
+            }
+        }
+
+        characterCounter = characterCounter + 1
+    }
+
+    val bitsToIgnore = bitsToNumberReader(3)
+    // skip the padding bits
+    repeat(bitsToIgnore) {
+        val _ = do readBit()
+        ()
+    }
+}
+
+def decompressReaderIntoStream() = {
+    loop { {l} =>
+        println("Starting Huffman block decompression...")
+        try {
+            val headerData = headerReader()
+            readContentsStream(headerData)
+
+            println("Huffman block decompression successful")
+        } with stop {
+            println("No more data to read, terminating decompression")
+            l.break()
         }
     }
 }
