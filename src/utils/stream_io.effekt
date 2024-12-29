@@ -1,13 +1,13 @@
 import stream
 
 
-def makeBitMask(fromBit: Int, toBit: Int) = {
+def makeBitMask(fromBit: Int, toBit: Int): Int = {
     var result = 0.0
     each (fromBit, toBit) {
         exp =>
             result = result + pow(2.0, exp.toDouble)
     }
-    result
+    result.toInt
 }
 
 interface StreamWriter {
@@ -111,7 +111,7 @@ def integerToBytesStream(integer: Int) = {
 /// 
 def numberToBitsStream(number: Int, bitsToWrite: Int) = {
     var processedNumber = number
-    each (0, bitsToWrite) {
+    each (0, bitsToWrite) { _ =>
         val bit = mod(processedNumber, 2)
         if (bit == 1) {
             do writeBit(true)
@@ -128,7 +128,7 @@ interface StreamReader {
     def readByte(): Byte / read[Byte]
 }
 
-def streamReader { prog: => Unit / StreamReader }: Unit / read[Byte] = {
+def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
     var buffer = 0
     var curBit = 0
     var readBits = 0
@@ -179,10 +179,22 @@ def streamReader { prog: => Unit / StreamReader }: Unit / read[Byte] = {
 }
 
 def bytesToIntegerReader() = {
-    val byte1 = do readByte()
-    val byte2 = do readByte()
-    val byte3 = do readByte()
     val byte4 = do readByte()
+    val byte3 = do readByte()
+    val byte2 = do readByte()
+    val byte1 = do readByte()
 
     bitwiseShl(byte1.toInt, 24) + bitwiseShl(byte2.toInt, 16) + bitwiseShl(byte3.toInt, 8) + byte4.toInt  
+}
+
+def bitsToNumberReader(bitsToRead: Int) = {
+    var result = 0
+    each (0, bitsToRead) { _ =>
+        result = bitwiseShl(result, 1)
+        val bit = do readBit()
+        if (bit) {
+            result = result + 1
+        }
+    }
+    result
 }
