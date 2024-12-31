@@ -75,7 +75,9 @@ def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
 
     def go(node: HuffmanTree, code: String): Unit = {
         node match {
-            case Leaf(char, _) => map.update(char, Some(code))
+            case Leaf(char, _) => 
+                map.update(char, Some(code))
+                println("Char: " ++ char.toInt.toChar.show ++ " Code: " ++ code)
             case Node(_, l, r) => {
                 go(l, code ++ "0")
                 go(r, code ++ "1")
@@ -94,7 +96,10 @@ def huffman_serialize(root: HuffmanTree): String = {
     def preorder(node: HuffmanTree, treeString: String): String = {
         var result = treeString
         node match {
-            case Leaf(char, freq) => result ++ "1" ++ char.toInt.toChar.show
+            case Leaf(char, freq) => 
+
+                result ++ "1" ++ char.toInt.toChar.show
+                //result ++ "1|" ++ char.toInt.show ++ "|"
             case Node(_, l, r) => 
                 result = result ++ "0"
                 result = preorder(l, result)
@@ -117,6 +122,24 @@ def huffman_deserialize(treeString: String): HuffmanTree = {
             char = treeString.unsafeCharAt(newIndex)
             newIndex = newIndex + 1
             (Leaf(char.toInt.toByte, 0), newIndex)
+
+
+            /*newIndex = newIndex + 1
+            var digit = treeString.unsafeCharAt(newIndex)
+            var result = ""
+            while (not(digit == '|')) {
+                result = result ++ digit.toString
+                newIndex = newIndex + 1
+                var digit = treeString.unsafeCharAt(newIndex)
+                ()
+            }
+            newIndex = newIndex + 1
+            var convertedNum = result.unsafeToInt
+            // report[WrongFormat] {
+                // convertedNum = string::toInt(result, 10)
+            // }
+            (Leaf(convertedNum.toByte, 0), newIndex)*/
+
         } else {
             val (left, newIndex2) = build_tree(newIndex)
             val (right, newIndex3) = build_tree(newIndex2)
