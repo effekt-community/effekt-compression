@@ -13,3 +13,11 @@ def huffmanCompressFile(sourceFilename: String, targetFilename: String): Unit = 
     compressReaderIntoStream()
 }
 
+def huffmanDecompressFile(sourceFilename: String, targetFilename: String): Unit = {
+    with report[IOError]
+    with readFile(sourceFilename)
+    with writeFile(targetFilename)
+
+    decompressReaderIntoStream()
+}
+
