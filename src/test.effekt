@@ -4,6 +4,7 @@ import test
 import src/lib
 import src/utils/ascii_dictionary
 import src/utils/huffman_tree
+import src/utils/huffman
 
 def main() = mainSuite("lib") {
   test("AsciiDictionaryInt_Init") {
@@ -31,11 +32,11 @@ def main() = mainSuite("lib") {
   test("HuffmanTree_Serialize") {
     val tree = Node(11, Leaf('w'.toInt.toByte, 5), Node(6, Leaf('a'.toInt.toByte, 3), Node(3, Leaf('e'.toInt.toByte, 1), Leaf('x'.toInt.toByte, 2))))
     val serialized_tree = huffman_serialize(tree)
-    assertEqual(serialized_tree, "01w01a01e1x")
+    assertEqual(serialized_tree, "01|119|01|97|01|101|1|120|")
   }
 
   test("HuffmanTree_Deserialize") {
-    val deserialized_tree = huffman_deserialize("01w01a01e1x")
+    val deserialized_tree = huffman_deserialize("01|119|01|97|01|101|1|120|")
     val tree = Node(0, Leaf('w'.toInt.toByte, 0), Node(0, Leaf('a'.toInt.toByte, 0), Node(0, Leaf('e'.toInt.toByte, 0), Leaf('x'.toInt.toByte, 0))))
     assertEqual(deserialized_tree, tree)
   }
