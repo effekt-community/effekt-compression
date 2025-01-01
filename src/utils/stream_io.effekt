@@ -27,14 +27,13 @@ def streamWriter { prog: => Unit / StreamWriter }: Unit / emit[Byte] = {
 
         def writeBit(bit: Bool) = {
             resume {
-                //buffer = bitwiseShl(buffer, 1)
                 bitCount = bitCount + 1
 
                 bit match {
                     case true => buffer = bitwiseOr(buffer, bitwiseShl(1, 8 - bitCount))
                     case _ => ()
                 }
-                //println("Buffer: " ++ buffer.show)
+
                 if (bitCount == 8) {
                     do emit[Byte](buffer.toByte)
                     buffer = 0
@@ -56,7 +55,6 @@ def streamWriter { prog: => Unit / StreamWriter }: Unit / emit[Byte] = {
                     val bufferPart = bitwiseShr(intByte, bitCount)
                     buffer = bitwiseOr(buffer, bufferPart)
                     do emit[Byte](buffer.toByte)
-                    //println("Emitting buffer: " ++ buffer.show)
 
                     buffer = bitwiseShl(bitwiseAnd(intByte, makeBitMask(0, bitCount)) ,freeBits)
                 }
@@ -83,7 +81,6 @@ def streamWriter { prog: => Unit / StreamWriter }: Unit / emit[Byte] = {
 /// Output an integer as stream of 4 bytes in little endian. (Less significant byte first)
 /// 
 def integerToBytesStream(integer: Int) = {
-    //println("Integer to bytes: " ++ integer.show)
     val byte1_mask = 4278190080
     val byte1 = bitwiseShr(bitwiseAnd(integer, byte1_mask), 24).toByte
 
@@ -96,10 +93,6 @@ def integerToBytesStream(integer: Int) = {
     val byte4_mask = 255
     val byte4 = bitwiseAnd(integer, byte4_mask).toByte
     
-    /*do emit[Byte](byte1)
-    do emit[Byte](byte2)
-    do emit[Byte](byte3)
-    do emit[Byte](byte4)*/
     do writeByte(byte4)
     do writeByte(byte3)
     do writeByte(byte2)
@@ -112,7 +105,6 @@ def integerToBytesStream(integer: Int) = {
 /// pad it with zeroes.
 /// 
 def numberToBitsStream(number: Int, bitsToWrite: Int) = {
-    //println("Number to bits: " ++ number.show)
     var processedNumber = number
     each (0, bitsToWrite) { _ =>
         val bit = mod(processedNumber, 2)
@@ -143,12 +135,11 @@ def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
             resume {
                 if (curBit <= 0) {
                     val readByte = do read[Byte]
-                    //println("Read byte in read bit: " ++ readByte.show)
                     buffer = readByte.toInt
                     curBit = 128
                     readBits = 0
                 }
-                //println("Read bit: " ++ readBits.show)
+
                 val result = bitwiseAnd(buffer, curBit)
                 curBit = bitwiseShr(curBit, 1)
                 readBits = readBits + 1
@@ -167,17 +158,12 @@ def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
                     do read[Byte]
                 } else {
                     val readByte = do read[Byte]
-                    //println("Read byte in read byte: " ++ readByte.show)
 
                     val newBuffer = readByte.toInt
                     val unreadBits = 8 - readBits
-                    //println("Read bits: " ++ readBits.show)
-                    //println("Unread bits: " ++ unreadBits.show)
 
                     val bytePart1 = bitwiseShl(bitwiseAnd(buffer, makeBitMask(0, unreadBits)), readBits)
-                    //println("Byte part 1: " ++ bytePart1.show)
                     val bytePart2 = bitwiseShr(newBuffer, unreadBits)
-                    //println("Byte part 2: " ++ bytePart2.show)
                     buffer = newBuffer
 
                     bitwiseOr(bytePart1, bytePart2).toByte
@@ -192,8 +178,6 @@ def bytesToIntegerReader() = {
     val byte3 = do readByte()
     val byte2 = do readByte()
     val byte1 = do readByte()
-
-    //println("Bytes to integer: " ++ byte1.show ++ " " ++ byte2.show ++ " " ++ byte3.show ++ " " ++ byte4.show)
 
     bitwiseShl(byte1.toInt, 24) + bitwiseShl(byte2.toInt, 16) + bitwiseShl(byte3.toInt, 8) + byte4.toInt  
 }
