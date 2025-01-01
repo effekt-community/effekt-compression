@@ -97,9 +97,7 @@ def huffman_serialize(root: HuffmanTree): String = {
         var result = treeString
         node match {
             case Leaf(char, freq) => 
-
-                result ++ "1" ++ char.toInt.toChar.show
-                //result ++ "1|" ++ char.toInt.show ++ "|"
+                result ++ "1|" ++ char.toInt.show ++ "|"
             case Node(_, l, r) => 
                 result = result ++ "0"
                 result = preorder(l, result)
@@ -113,32 +111,21 @@ def huffman_serialize(root: HuffmanTree): String = {
 def huffman_deserialize(treeString: String): HuffmanTree = {
     def build_tree(index: Int): (HuffmanTree, Int) = {
         var newIndex = index
-        // if (index >= treeString.size) {
-        //     None, index
-        // }
+
         var char = treeString.unsafeCharAt(newIndex)
         newIndex = newIndex + 1
         if (char == '1') {
-            char = treeString.unsafeCharAt(newIndex)
-            newIndex = newIndex + 1
-            (Leaf(char.toInt.toByte, 0), newIndex)
-
-
-            /*newIndex = newIndex + 1
+            newIndex = newIndex + 1 // skip | character
             var digit = treeString.unsafeCharAt(newIndex)
             var result = ""
             while (not(digit == '|')) {
                 result = result ++ digit.toString
                 newIndex = newIndex + 1
-                var digit = treeString.unsafeCharAt(newIndex)
-                ()
+                digit = treeString.unsafeCharAt(newIndex)
             }
             newIndex = newIndex + 1
             var convertedNum = result.unsafeToInt
-            // report[WrongFormat] {
-                // convertedNum = string::toInt(result, 10)
-            // }
-            (Leaf(convertedNum.toByte, 0), newIndex)*/
+            (Leaf(convertedNum.toByte, 0), newIndex)
 
         } else {
             val (left, newIndex2) = build_tree(newIndex)
