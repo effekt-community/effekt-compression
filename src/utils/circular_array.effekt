@@ -1,0 +1,52 @@
+import array
+
+record CircularArray[T](rawContent: Array[Option[T]], head: Ref[Int], tail: Ref[Int], elementCount: Ref[Int])
+
+def circularArray[T](size: Int): CircularArray[T] = 
+    CircularArray[T](array(size, None()), ref(-1), ref(-1), ref(0))
+
+def is_full[T](circularArray: CircularArray[T]): Bool = {
+    circularArray.tail.get() == circularArray.head.get() - 1
+}
+
+def append[T](circularArray: CircularArray[T], element: T): Unit / {} = {
+    if (circularArray.elementCount.get() == 0) {
+        circularArray.head.set(0)
+        circularArray.tail.set(0)
+    }
+
+    if (circularArray.is_full) {
+        circularArray.head.set(mod((circularArray.head.get() + 1), circularArray.rawContent.size))
+    } else {
+        circularArray.elementCount.set(circularArray.elementCount.get() + 1)
+    }
+
+    circularArray.tail.set(mod((circularArray.tail.get() + 1), circularArray.rawContent.size))
+    report[OutOfBounds] {
+        circularArray.rawContent.set(circularArray.tail.get(), Some(element))
+    }
+}
+
+def get[T](circularArray: CircularArray[T], index: Int): Option[T] = {
+    circularArray.rawContent.unsafeGet(mod((circularArray.head.get() + index), circularArray.rawContent.size))
+}
+
+def popFront[T](circularArray: CircularArray[T]): Option[T] = {
+    if (circularArray.elementCount.get() == 0) {
+        None()
+    } else {
+        val element = circularArray.rawContent.unsafeGet(circularArray.head.get())
+        circularArray.rawContent.unsafeSet(circularArray.head.get(), None())
+        circularArray.head.set(mod((circularArray.head.get() + 1), circularArray.rawContent.size))
+        circularArray.elementCount.set(circularArray.elementCount.get() - 1)
+
+        element
+    }
+}
+
+def foreachIndex[T](circularArray: CircularArray[T]){ action: (Int, Option[T]) => Unit }: Unit = {
+    each(0, circularArray.elementCount.get()) { i =>
+        val idx = mod(circularArray.head.get() + i, circularArray.rawContent.size)
+        action(idx, circularArray.rawContent.unsafeGet(idx))
+    }
+}
