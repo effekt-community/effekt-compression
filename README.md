@@ -1,12 +1,10 @@
-# Effekt Template
+# Hufmann coding and LZ77 implementation
 
-> [!WARNING]
-> This is a work-in-progress, feel free to contribute!
-
-This template provides a starting point for Effekt projects.
+This project is part of the *Effective Programming with Effects* course at the *University of Tübingen*.
 
 ## Table of contents
 
+- [Description](#description)
 - [First steps](#first-steps)
 - [Useful commands](#useful-commands)
   - [Effekt commands](#effekt-commands)
@@ -16,6 +14,11 @@ This template provides a starting point for Effekt projects.
 - [CI](#ci)
 
 ---
+
+## Description
+This project implements Huffman coding and LZ77 compression algorithm on byte streams. It implements the LZSS version of LZ77. It is written in the effekt language, a research language developed at the *University of Tübingen*.
+
+https://effekt-lang.org/ 
 
 ## First steps
 
