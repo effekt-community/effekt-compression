@@ -1,0 +1,158 @@
+import src/utils/circular_array
+import stream
+import io
+import io/error
+import src/utils/stream_io
+
+def init_look_ahead_buffer(lookAheadBuffer: CircularArray[Byte]) = {
+    val lookAheadBufferSize = lookAheadBuffer.rawContent.size
+
+    try {
+        repeat (lookAheadBufferSize) {
+            lookAheadBuffer.append(do readByte())
+        }
+    } with stop {
+        ()
+    }
+}
+
+def stopHandler() {prog: => Unit / stop} = {
+    try {
+        prog()
+    } with stop {
+        println("No more data to read, terminating compression")
+    }
+}
+
+def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], lookAheadBuffer: CircularArray[Byte]) = {
+    //with on[OutOfBounds].report
+    // keeps track of the back-offset in the search buffer
+    var offsetCounter = searchBuffer.elementCount.get()
+    var maxMatchLength = 0
+    var maxMatchOffset = 0
+
+    searchBuffer.foreachIndex { (i, searchBufferElement) =>
+
+        // find the longest matching byte sequence starting at the index i
+        if (searchBufferElement.toInt == processedByte.toInt) {
+            var matchLength = 1
+
+            var lookAheadBufferIdx = 0
+            var searchBufferIdx = i + 1
+
+            // we are at the end of the search buffer => no more matches
+            /*if (searchBufferIdx >= searchBuffer.elementCount.get()) {
+                (0, 0)
+            }*/
+
+            loop { {l} =>
+                if (lookAheadBufferIdx >= lookAheadBuffer.elementCount.get() || searchBufferIdx >= searchBuffer.elementCount.get()) {
+                    l.break()
+                }
+
+                val searchBufferMatchElement = searchBuffer.get(searchBufferIdx)
+                val lookAheadBufferElement = lookAheadBuffer.get(lookAheadBufferIdx)
+
+                if (searchBufferMatchElement.toInt == lookAheadBufferElement.toInt) {
+                    matchLength = matchLength + 1
+                } else {
+                    l.break()
+                }
+
+                lookAheadBufferIdx = lookAheadBufferIdx + 1
+                searchBufferIdx = searchBufferIdx + 1
+            }
+
+            if (matchLength > maxMatchLength) {
+                maxMatchLength = matchLength
+                maxMatchOffset = offsetCounter
+            }
+
+        }
+
+        offsetCounter = offsetCounter - 1
+    }
+
+    if (maxMatchOffset < 3) {
+        (0, 0)
+    } else {
+        (maxMatchOffset, maxMatchLength)
+    }
+}
+
+def compressReaderIntoStream() = {
+    with streamWriter
+
+    println("Starting LZSS compression...")
+    
+    val searchBufferSize = 4096
+    val lookAheadBufferSize = 18
+
+    val searchBuffer = circular_array[Byte](searchBufferSize)
+    val lookAheadBuffer = circular_array[Byte](lookAheadBufferSize)
+
+    var processedByte = 15.toByte
+    var hasContent = true
+
+    streamReader {
+        try {
+            processedByte = do readByte()
+        } with stop {
+            hasContent = false
+        }
+        init_look_ahead_buffer(lookAheadBuffer)
+    }
+
+    if (hasContent){
+        loop { {l} =>
+            val (matchOffset, matchLength) = find_longest_match(processedByte, searchBuffer, lookAheadBuffer)
+
+            searchBuffer.append(processedByte)
+
+            if (matchLength == 0) {
+                // we will emit the byte itself with a 0 flag
+                do writeBit(false)
+                do writeByte(processedByte)
+            } else {
+                // emit the offset and length of the match with a leading 1 flag
+                do writeBit(true)
+                numberToBitsStream(matchOffset, 12)
+                numberToBitsStream(matchLength - 3, 4)
+            }
+
+            if(not(matchLength == 0)) {
+                // matchLength - 1 because of the processed byte
+                repeat (matchLength - 1) {
+                    val value = lookAheadBuffer.popFront()
+                    value match {
+                        case Some(v) => searchBuffer.append(v)
+                        case None() => panic("Fatal error, look-ahead buffer should contain matched bytes")
+                    }
+                }
+
+                // fill up the look-ahead buffer with new bytes
+                try {
+                    repeat (matchLength - 1) {
+                        streamReader {
+                            lookAheadBuffer.append(do readByte())
+                        }
+                    }
+                } with stop {
+                    ()
+                }
+            }
+
+            // break the loop if there are no new characters to read
+            val value = lookAheadBuffer.popFront()
+            value match {
+                case Some(v) => processedByte = v
+                case None() => l.break()
+            }
+        }
+    } else {
+        ()
+    }
+
+
+    println("Compression was successful")
+}
