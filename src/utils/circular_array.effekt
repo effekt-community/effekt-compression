@@ -2,7 +2,7 @@ import array
 
 record CircularArray[T](rawContent: Array[Option[T]], head: Ref[Int], tail: Ref[Int], elementCount: Ref[Int])
 
-def circularArray[T](size: Int): CircularArray[T] = 
+def circular_array[T](size: Int): CircularArray[T] = 
     CircularArray[T](array(size, None()), ref(-1), ref(-1), ref(0))
 
 def is_full[T](circularArray: CircularArray[T]): Bool = {
@@ -27,26 +27,31 @@ def append[T](circularArray: CircularArray[T], element: T): Unit / {} = {
     }
 }
 
-def get[T](circularArray: CircularArray[T], index: Int): Option[T] = {
-    circularArray.rawContent.unsafeGet(mod((circularArray.head.get() + index), circularArray.rawContent.size))
+def get[T](circularArray: CircularArray[T], index: Int): T / Exception[OutOfBounds] = {
+    val value = circularArray.rawContent.unsafeGet(mod((circularArray.head.get() + index), circularArray.rawContent.size))
+    value match {
+        case Some(v) => v
+        case None() => do raise(OutOfBounds(), "Index out of bounds")
+    }
 }
 
-def popFront[T](circularArray: CircularArray[T]): Option[T] = {
+def popFront[T](circularArray: CircularArray[T]): Option[T] / Exception[OutOfBounds] = {
     if (circularArray.elementCount.get() == 0) {
         None()
     } else {
-        val element = circularArray.rawContent.unsafeGet(circularArray.head.get())
+        val element = circularArray.get(circularArray.head.get())
         circularArray.rawContent.unsafeSet(circularArray.head.get(), None())
         circularArray.head.set(mod((circularArray.head.get() + 1), circularArray.rawContent.size))
         circularArray.elementCount.set(circularArray.elementCount.get() - 1)
 
-        element
+        Some(element)
     }
 }
 
-def foreachIndex[T](circularArray: CircularArray[T]){ action: (Int, Option[T]) => Unit }: Unit = {
+def foreachIndex[T](circularArray: CircularArray[T]){ action: (Int, T) => Unit }: Unit = {
     each(0, circularArray.elementCount.get()) { i =>
-        val idx = mod(circularArray.head.get() + i, circularArray.rawContent.size)
-        action(idx, circularArray.rawContent.unsafeGet(idx))
+        report[OutOfBounds] {
+            action(i, circularArray.get(i))
+        }
     }
 }
