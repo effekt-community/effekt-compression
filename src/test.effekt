@@ -4,7 +4,7 @@ import test
 import src/lib
 import src/utils/ascii_dictionary
 import src/utils/huffman_tree
-import src/utils/huffman
+import src/utils/circular_array
 
 def main() = mainSuite("lib") {
   test("AsciiDictionaryInt_Init") {
@@ -39,5 +39,67 @@ def main() = mainSuite("lib") {
     val deserialized_tree = huffman_deserialize("01|119|01|97|01|101|1|120|")
     val tree = Node(0, Leaf('w'.toInt.toByte, 0), Node(0, Leaf('a'.toInt.toByte, 0), Node(0, Leaf('e'.toInt.toByte, 0), Leaf('x'.toInt.toByte, 0))))
     assertEqual(deserialized_tree, tree)
+  }
+
+  test("CircularArray_Append") {
+    with on[OutOfBounds].report
+    val buffer = circular_array[Int](5)
+    assertEqual(buffer.elementCount.get(), 0)
+
+    buffer.append(1)
+    assertEqual(buffer.elementCount.get(), 1)
+
+    buffer.append(2)
+    assertEqual(buffer.elementCount.get(), 2)
+
+    buffer.append(3)
+    assertEqual(buffer.elementCount.get(), 3)
+
+    buffer.append(4)
+    assertEqual(buffer.elementCount.get(), 4)
+
+    buffer.append(5)
+    assertEqual(buffer.elementCount.get(), 5)
+
+    assertEqual(buffer.get(0), 1)
+    assertEqual(buffer.get(1), 2)
+    assertEqual(buffer.get(2), 3)
+    assertEqual(buffer.get(3), 4)
+    assertEqual(buffer.get(4), 5)
+
+    buffer.append(6)
+    assertEqual(buffer.get(0), 2)
+    assertEqual(buffer.get(1), 3)
+    assertEqual(buffer.get(2), 4)
+    assertEqual(buffer.get(3), 5)
+    assertEqual(buffer.get(4), 6)
+
+    buffer.append(7)
+    assertEqual(buffer.get(0), 3)
+  }
+
+  test("CircularArray_PopFront") {
+        with on[OutOfBounds].report
+    val buffer = circular_array[Int](5)
+    buffer.append(1)
+    buffer.append(2)
+    buffer.append(3)
+    buffer.append(4)
+    buffer.append(5)
+    buffer.append(6)
+    buffer.append(7)
+
+    assertEqual(buffer.popFront(), Some(3))
+    assertEqual(buffer.elementCount.get(), 4)
+    assertEqual(buffer.popFront(), Some(4))
+    assertEqual(buffer.elementCount.get(), 3)
+    assertEqual(buffer.popFront(), Some(5))
+    assertEqual(buffer.elementCount.get(), 2)
+    assertEqual(buffer.popFront(), Some(6))
+    assertEqual(buffer.elementCount.get(), 1)
+    assertEqual(buffer.popFront(), Some(7))
+    assertEqual(buffer.elementCount.get(), 0)
+    assertEqual(buffer.popFront(), None())
+    assertEqual(buffer.elementCount.get(), 0)
   }
 }
