@@ -1,19 +1,16 @@
 import array
 
-record CircularArray[T](rawContent: Array[Option[T]], head: Ref[Int], tail: Ref[Int], elementCount: Ref[Int])
+record CircularArray[T](rawContent: Array[Option[T]], head: Ref[Int], elementCount: Ref[Int])
 
 def circular_array[T](size: Int): CircularArray[T] = 
-    CircularArray[T](array(size, None()), ref(-1), ref(-1), ref(0))
+    CircularArray[T](array(size, None()), ref(0), ref(0))
 
 def is_full[T](circularArray: CircularArray[T]): Bool = {
-    circularArray.tail.get() == circularArray.head.get() - 1
+    circularArray.elementCount.get() == circularArray.rawContent.size
 }
 
 def append[T](circularArray: CircularArray[T], element: T): Unit / {} = {
-    if (circularArray.elementCount.get() == 0) {
-        circularArray.head.set(0)
-        circularArray.tail.set(0)
-    }
+    val addIndex = mod(circularArray.head.get() + circularArray.elementCount.get(), circularArray.rawContent.size)
 
     if (circularArray.is_full) {
         circularArray.head.set(mod((circularArray.head.get() + 1), circularArray.rawContent.size))
@@ -21,9 +18,8 @@ def append[T](circularArray: CircularArray[T], element: T): Unit / {} = {
         circularArray.elementCount.set(circularArray.elementCount.get() + 1)
     }
 
-    circularArray.tail.set(mod((circularArray.tail.get() + 1), circularArray.rawContent.size))
     report[OutOfBounds] {
-        circularArray.rawContent.set(circularArray.tail.get(), Some(element))
+        circularArray.rawContent.set(addIndex, Some(element))
     }
 }
 
@@ -31,7 +27,7 @@ def get[T](circularArray: CircularArray[T], index: Int): T / Exception[OutOfBoun
     val value = circularArray.rawContent.unsafeGet(mod((circularArray.head.get() + index), circularArray.rawContent.size))
     value match {
         case Some(v) => v
-        case None() => do raise(OutOfBounds(), "Index out of bounds")
+        case None() => do raise(OutOfBounds(), "Index out of bounds: " ++ (mod((circularArray.head.get() + index), circularArray.rawContent.size).show ++ ", array size: " ++ circularArray.rawContent.size.show ++ ", element count: " ++ circularArray.elementCount.get().show))
     }
 }
 
@@ -39,7 +35,7 @@ def popFront[T](circularArray: CircularArray[T]): Option[T] / Exception[OutOfBou
     if (circularArray.elementCount.get() == 0) {
         None()
     } else {
-        val element = circularArray.get(circularArray.head.get())
+        val element = circularArray.get(0)
         circularArray.rawContent.unsafeSet(circularArray.head.get(), None())
         circularArray.head.set(mod((circularArray.head.get() + 1), circularArray.rawContent.size))
         circularArray.elementCount.set(circularArray.elementCount.get() - 1)
