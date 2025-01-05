@@ -7,25 +7,12 @@ import src/utils/stream_io
 def init_look_ahead_buffer(lookAheadBuffer: CircularArray[Byte]) = {
     val lookAheadBufferSize = lookAheadBuffer.rawContent.size
 
-    try {
-        repeat (lookAheadBufferSize) {
-            lookAheadBuffer.append(do readByte())
-        }
-    } with stop {
-        ()
-    }
-}
-
-def stopHandler() {prog: => Unit / stop} = {
-    try {
-        prog()
-    } with stop {
-        println("No more data to read, terminating compression")
+    repeat (lookAheadBufferSize) {
+        lookAheadBuffer.append(do readByte())
     }
 }
 
 def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], lookAheadBuffer: CircularArray[Byte]) = {
-    //with on[OutOfBounds].report
     // keeps track of the back-offset in the search buffer
     var offsetCounter = searchBuffer.elementCount.get()
     var maxMatchLength = 0
@@ -80,8 +67,9 @@ def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], l
     }
 }
 
-def compressReaderIntoStream() = {
+def compressReaderIntoStream(): Unit / { emit[Byte], read[Byte]} = {
     with streamWriter
+    with on[OutOfBounds].report
 
     println("Starting LZSS compression...")
     
@@ -91,16 +79,24 @@ def compressReaderIntoStream() = {
     val searchBuffer = circular_array[Byte](searchBufferSize)
     val lookAheadBuffer = circular_array[Byte](lookAheadBufferSize)
 
-    var processedByte = 15.toByte
+    var processedByte = 42.toByte
     var hasContent = true
 
-    streamReader {
-        try {
+    
+    try {
+        streamReader {
             processedByte = do readByte()
-        } with stop {
-            hasContent = false
         }
-        init_look_ahead_buffer(lookAheadBuffer)
+    } with stop {
+        hasContent = false
+    }
+
+    try {
+        streamReader {
+            init_look_ahead_buffer(lookAheadBuffer)
+        }
+    } with stop {
+        ()
     }
 
     if (hasContent){
@@ -116,7 +112,10 @@ def compressReaderIntoStream() = {
             } else {
                 // emit the offset and length of the match with a leading 1 flag
                 do writeBit(true)
-                numberToBitsStream(matchOffset, 12)
+
+                // we need to subtract 1 from the offset because offset indexing starts at 1 (or at element count of search buffer)
+                // In case of offset being 4096, it wouldnt fit into 12 bits
+                numberToBitsStream(matchOffset - 1, 12)
                 numberToBitsStream(matchLength - 3, 4)
             }
 
@@ -155,4 +154,50 @@ def compressReaderIntoStream() = {
 
 
     println("Compression was successful")
+}
+
+/// ********************* \\\
+///     DECOMPRESSION     \\\
+/// ********************* \\\
+
+def stopHandler() {prog: => Unit / stop} = {
+    try {
+        prog()
+    } with stop {
+        println("Decompression was successful")
+    }
+}
+
+def decompressReaderIntoStream() = {
+    with stopHandler
+    with streamReader
+    with streamWriter
+    with on[OutOfBounds].report
+
+    println("Starting LZSS decompression...")
+
+    val searchBufferSize = 4096
+    val searchBuffer = circular_array[Byte](searchBufferSize)
+
+    loop { {l} =>
+        var flag = do readBit()
+        if (flag) {
+            var offset = bitsToNumberReader(12)
+            var length = bitsToNumberReader(4) + 3
+
+            val start = searchBuffer.elementCount.get() - offset
+            val end = start + length
+
+            each (start, end) { i =>
+                val byte = searchBuffer.get(i)
+                do writeByte(byte)
+                searchBuffer.append(byte)
+            }
+
+        } else {
+            val byte = do readByte()
+            do writeByte(byte)
+            searchBuffer.append(byte)
+        }
+    }
 }
