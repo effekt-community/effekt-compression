@@ -27,18 +27,18 @@ def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], l
             var lookAheadBufferIdx = 0
             var searchBufferIdx = i + 1
 
-            // we are at the end of the search buffer => no more matches
-            /*if (searchBufferIdx >= searchBuffer.elementCount.get()) {
-                (0, 0)
-            }*/
+            // println("Offset counter: " ++ offsetCounter.show)
 
             loop { {l} =>
                 if (lookAheadBufferIdx >= lookAheadBuffer.elementCount.get() || searchBufferIdx >= searchBuffer.elementCount.get()) {
                     l.break()
                 }
 
+                // println("Look-ahead buffer idx: " ++ lookAheadBufferIdx.show ++ ", search buffer idx: " ++ searchBufferIdx.show ++ ", match-length: " ++ matchLength.show)
+
                 val searchBufferMatchElement = searchBuffer.get(searchBufferIdx)
                 val lookAheadBufferElement = lookAheadBuffer.get(lookAheadBufferIdx)
+                // println("SearchBufferMatchElement: " ++ searchBufferMatchElement.show ++ ", LookAheadBufferElement: " ++ lookAheadBufferElement.show)
 
                 if (searchBufferMatchElement.toInt == lookAheadBufferElement.toInt) {
                     matchLength = matchLength + 1
@@ -50,21 +50,35 @@ def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], l
                 searchBufferIdx = searchBufferIdx + 1
             }
 
+
             if (matchLength > maxMatchLength) {
+                // println("Match length was " ++ maxMatchLength.show ++ ", changing to " ++ matchLength.show)
                 maxMatchLength = matchLength
                 maxMatchOffset = offsetCounter
             }
-
+            // println("---------------------------------------")
         }
 
         offsetCounter = offsetCounter - 1
     }
 
-    if (maxMatchOffset < 3) {
+    if (maxMatchLength < 3) {
         (0, 0)
     } else {
         (maxMatchOffset, maxMatchLength)
     }
+}
+
+def show(c: CircularArray[Byte]) = {
+    var result = "["
+    c.foreachIndex { (i, e) =>
+        // println(i.show ++ ": " ++ e.show)
+        val value = e.toInt.toChar.toString
+        result = result ++ value ++ ", "
+    }
+
+    result = result ++ "]"
+    result
 }
 
 def compressReaderIntoStream(): Unit / { emit[Byte], read[Byte]} = {
@@ -99,9 +113,15 @@ def compressReaderIntoStream(): Unit / { emit[Byte], read[Byte]} = {
         ()
     }
 
+
     if (hasContent){
         loop { {l} =>
+            println("Search buffer: " ++ show(searchBuffer))
+            println("Processed byte: " ++ processedByte.toInt.toChar.toString)
+            println("Look-ahead buffer: " ++ show(lookAheadBuffer))
+
             val (matchOffset, matchLength) = find_longest_match(processedByte, searchBuffer, lookAheadBuffer)
+            //println("Match offset: " ++ matchOffset.show ++ ", match length: " ++ matchLength.show)
 
             searchBuffer.append(processedByte)
 
@@ -110,6 +130,8 @@ def compressReaderIntoStream(): Unit / { emit[Byte], read[Byte]} = {
                 do writeBit(false)
                 do writeByte(processedByte)
             } else {
+                //println("Currently processed byte:" ++ processedByte.toInt.toChar.toString)
+                println("Writing match offset: " ++ matchOffset.show)
                 // emit the offset and length of the match with a leading 1 flag
                 do writeBit(true)
 
@@ -147,6 +169,16 @@ def compressReaderIntoStream(): Unit / { emit[Byte], read[Byte]} = {
                 case Some(v) => processedByte = v
                 case None() => l.break()
             }
+
+            // fill one byte to the lookAheadBuffer for the popped one
+            try {
+                streamReader {
+                    lookAheadBuffer.append(do readByte())
+                }
+            } with stop {
+                ()
+            }
+            println("--------------------------------------------")
         }
     } else {
         ()
@@ -182,7 +214,7 @@ def decompressReaderIntoStream() = {
     loop { {l} =>
         var flag = do readBit()
         if (flag) {
-            var offset = bitsToNumberReader(12)
+            var offset = bitsToNumberReader(12) + 1
             var length = bitsToNumberReader(4) + 3
 
             val start = searchBuffer.elementCount.get() - offset
