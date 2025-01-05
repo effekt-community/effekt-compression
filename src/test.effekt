@@ -5,6 +5,7 @@ import src/lib
 import src/utils/ascii_dictionary
 import src/utils/huffman_tree
 import src/utils/circular_array
+import src/utils/lzss
 
 def main() = mainSuite("lib") {
   test("AsciiDictionaryInt_Init") {
@@ -79,7 +80,7 @@ def main() = mainSuite("lib") {
   }
 
   test("CircularArray_PopFront") {
-        with on[OutOfBounds].report
+    with on[OutOfBounds].report
     val buffer = circular_array[Int](5)
     buffer.append(1)
     buffer.append(2)
@@ -101,5 +102,27 @@ def main() = mainSuite("lib") {
     assertEqual(buffer.elementCount.get(), 0)
     assertEqual(buffer.popFront(), None())
     assertEqual(buffer.elementCount.get(), 0)
+  }
+
+  test("Find_Longest_Match") {
+    with on[OutOfBounds].report
+    val searchBuffer = circular_array[Byte](7)
+    searchBuffer.append('c'.toInt.toByte)
+    searchBuffer.append('a'.toInt.toByte)
+    searchBuffer.append('a'.toInt.toByte)
+    searchBuffer.append('a'.toInt.toByte)
+    searchBuffer.append('a'.toInt.toByte)
+    searchBuffer.append('a'.toInt.toByte)
+    searchBuffer.append('g'.toInt.toByte)
+
+    val lookAheadBuffer = circular_array[Byte](5)
+    lookAheadBuffer.append('a'.toInt.toByte)
+    lookAheadBuffer.append('a'.toInt.toByte)
+    lookAheadBuffer.append('a'.toInt.toByte)
+    lookAheadBuffer.append('b'.toInt.toByte)
+
+    val (offset, length) = find_longest_match('a'.toInt.toByte, searchBuffer, lookAheadBuffer)
+    assertEqual(offset, 6)
+    assertEqual(length, 4)
   }
 }
