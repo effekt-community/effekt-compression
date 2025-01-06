@@ -183,13 +183,24 @@ def bytesToIntegerReader() = {
 }
 
 def bitsToNumberReader(bitsToRead: Int) = {
-    var result = 0
+    /*var result = 0
     each (0, bitsToRead) { _ =>
         result = bitwiseShl(result, 1)
         val bit = do readBit()
         if (bit) {
             result = result + 1
         }
+        println(result.show)
     }
-    result
+    result*/
+
+    var result = 0.0
+    each (0, bitsToRead) {
+        exp =>
+            val bit = do readBit()
+            if (bit) {
+                result = result + pow(2.0, exp.toDouble)
+            }
+    }
+    result.toInt
 }
