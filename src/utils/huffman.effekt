@@ -166,7 +166,7 @@ def writeContentsStream(contentsData: ContentsData) = {
 
     bitLength = bitLength + 3  // 3 bits to store number of bits to ignore in the last byte
     val leftovers = mod(bitLength, 8)
-    numberToBitsStream(8 - leftovers, 3)
+    numberToBitsStream(mod(8 - leftovers, 8), 3)
 }
 
 
