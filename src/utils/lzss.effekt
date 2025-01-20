@@ -6,7 +6,7 @@ import src/utils/stream_io
 import bytearray
 
 def chunkReader(): (Int, ByteArray) / read[Byte] = {
-    val chunkSize = 2 * 4096 //10 //
+    val chunkSize = 2 * 4096
     val buffer = bytearray::allocate(chunkSize)
     var offset = 0
 
@@ -45,18 +45,14 @@ def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], l
             var lookAheadBufferIdx = 0
             var searchBufferIdx = i + 1
 
-            // println("Offset counter: " ++ offsetCounter.show)
-
             loop { {l} =>
-                if (lookAheadBufferIdx >= lookAheadBuffer.elementCount.get() || searchBufferIdx >= searchBuffer.elementCount.get()) {
+                // stop if the match length is 18 (maximum we can store in 4 bits)
+                if (lookAheadBufferIdx >= lookAheadBuffer.elementCount.get() || searchBufferIdx >= searchBuffer.elementCount.get() || matchLength == 18) {
                     l.break()
                 }
 
-                // println("Look-ahead buffer idx: " ++ lookAheadBufferIdx.show ++ ", search buffer idx: " ++ searchBufferIdx.show ++ ", match-length: " ++ matchLength.show)
-
                 val searchBufferMatchElement = searchBuffer.get(searchBufferIdx)
                 val lookAheadBufferElement = lookAheadBuffer.get(lookAheadBufferIdx)
-                // println("SearchBufferMatchElement: " ++ searchBufferMatchElement.show ++ ", LookAheadBufferElement: " ++ lookAheadBufferElement.show)
 
                 if (searchBufferMatchElement.toInt == lookAheadBufferElement.toInt) {
                     matchLength = matchLength + 1
@@ -70,11 +66,9 @@ def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], l
 
 
             if (matchLength > maxMatchLength) {
-                // println("Match length was " ++ maxMatchLength.show ++ ", changing to " ++ matchLength.show)
                 maxMatchLength = matchLength
                 maxMatchOffset = offsetCounter
             }
-            // println("---------------------------------------")
         }
 
         offsetCounter = offsetCounter - 1
@@ -197,21 +191,13 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
     integerToBytesStream(tokenCount)
 
     loop { {l} =>
-        println("Search buffer: " ++ show(searchBuffer))
-        println("Processed byte: " ++ processedByte.toInt.toChar.toString)
-        println("Look-ahead buffer: " ++ show(lookAheadBuffer))
-
         val (matchOffset, matchLength) = find_longest_match(processedByte, searchBuffer, lookAheadBuffer)
-        //println("Match offset: " ++ matchOffset.show ++ ", match length: " ++ matchLength.show)
-
-        searchBuffer.append(processedByte)
 
         if (matchLength == 0) {
             // we will emit the byte itself with a 0 flag
             do writeBit(false)
             do writeByte(processedByte)
         } else {
-            println("Writing match offset: " ++ matchOffset.show)
             // emit the offset and length of the match with a leading 1 flag
             do writeBit(true)
 
@@ -220,6 +206,8 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
             numberToBitsStream(matchOffset - 1, 12)
             numberToBitsStream(matchLength - 3, 4)
         }
+
+        searchBuffer.append(processedByte)
 
         if(not(matchLength == 0)) {
             // matchLength - 1 because of the processed byte
@@ -253,11 +241,10 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
             lookAheadBuffer.append(buffer.unsafeGet(bufferIndex))
             bufferIndex = bufferIndex + 1
         }
-        println("--------------------------------------------")
     }
 
     // account for 3 bits occupied by the stored value of bitPadding
-    val bitPadding = 8 - mod(tokenCount + 3, 8)
+    val bitPadding = mod(8 - mod(tokenCount + 3, 8), 8) 
     println("Bit padding: " ++ bitPadding.show)
     numberToBitsStream(bitPadding, 3)
 
@@ -308,32 +295,26 @@ def decompressBlock() = {
     println("Token count: " ++ tokenCount.show)
 
     repeat(tokenCount) { {l} =>
-        println("Search buffer: " ++ show(searchBuffer))
 
         var flag = do readBit()
         if (flag) {
             var offset = bitsToNumberReader(12) + 1
             var length = bitsToNumberReader(4) + 3
 
-            println("Offset: " ++ offset.show ++ ", length: " ++ length.show)
-
             val start = searchBuffer.elementCount.get() - offset
             val end = start + length
 
-            println("Start: " ++ start.show ++ ", end: " ++ end.show)
-
             each (start, end) { i =>
                 val byte = searchBuffer.get(i)
+
                 do writeByte(byte)
                 searchBuffer.append(byte)
-                println(byte.toInt.toChar.toString)
             }
 
         } else {
             val byte = do readByte()
             do writeByte(byte)
             searchBuffer.append(byte)
-            println(byte.toInt.toChar.toString)
         }
     }
 
