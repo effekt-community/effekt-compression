@@ -51,3 +51,15 @@ def foreachIndex[T](circularArray: CircularArray[T]){ action: (Int, T) => Unit }
         }
     }
 }
+
+// testing purposes
+def show(c: CircularArray[Byte]) = {
+    var result = "["
+    c.foreachIndex { (i, e) =>
+        val value = e.toInt.toChar.toString
+        result = result ++ value ++ ", "
+    }
+
+    result = result ++ "]"
+    result
+}
