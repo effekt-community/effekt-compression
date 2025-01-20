@@ -5,6 +5,24 @@ import io/error
 import src/utils/stream_io
 import bytearray
 
+/// LZSS block structure:
+/// 
+/// +----------------------------------------------+--------------------+----------------------------------+
+/// | 4 bytes - token count                        | Encoded content    | 3 bits - how many bits to ignore |
+/// |                                              |                    | before next block                |
+/// |                                              |                    |                                  |
+/// |                                              |                    |                                  |
+/// +----------------------------------------------+--------------------+----------------------------------+
+///
+/// Numbers are in little endian - less significant bytes/bits first
+/// 
+/// The encoded content consists of tokens. Each token is either a single byte or a pair of offset and length.
+/// To encode a token, we use a flag bit to distinguish between the two cases. If the flag bit is 0, it is a single byte, 
+/// otherwise it is a pair of offset and length.
+/// 
+/// The offset is the starting position of a match. It is the number of bytes one needs to go back in the search buffer.
+/// The length is the number of bytes to copy from the search buffer.
+
 def chunkReader(): (Int, ByteArray) / read[Byte] = {
     val chunkSize = 2 * 4096
     val buffer = bytearray::allocate(chunkSize)
