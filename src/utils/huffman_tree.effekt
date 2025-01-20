@@ -77,7 +77,6 @@ def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
         node match {
             case Leaf(char, _) => 
                 map.update(char, Some(code))
-                println("Char: " ++ char.toInt.toChar.show ++ " Code: " ++ code)
             case Node(_, l, r) => {
                 go(l, code ++ "0")
                 go(r, code ++ "1")
