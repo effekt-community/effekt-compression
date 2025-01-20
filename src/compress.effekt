@@ -1,0 +1,40 @@
+module compress // must be named same as the file!
+
+import args
+import src/lib
+
+/// Example usage:
+/// effekt.sh /home/ondra/semestr5/epe/effekt-compression/src/compress.effekt --backend js --includes /home/ondra/semestr5/epe/effekt-compression -- README.md huffman compress test.bin
+def main(): Unit = {
+    val args: List[String] = commandLineArgs()
+    if (not(args.size == 4)) { 
+        println("Invalid arguments amount, run `compress [SOURCE_FILENAME] [METHOD] [COMPRESS/DECOMPRESS] [OUTPUT_FILENAME]`")
+    } else {
+        with on[OutOfBounds].report
+        val sourceFilename: String = args.get(0)
+        val method: String = args.get(1)
+        val action: String = args.get(2)
+        val outputFilename: String = args.get(3)
+
+        def errorMessage(x: String, y: String) = println("Invalid arguments, run `compress [SOURCE_FILENAME] [METHOD] [COMPRESS/DECOMPRESS] [OUTPUT_FILENAME]`")
+
+        var actionFn = errorMessage
+
+        if (method == "huffman") {
+            if (action == "compress") {
+                actionFn = huffmanCompressFile
+            } else if (action == "decompress") {
+                actionFn = huffmanDecompressFile
+            }
+        } else if (method == "lzss") {
+            if (action == "compress") {
+                actionFn = lzssCompressFile
+            } else if (action == "decompress") {
+                actionFn = lzssDecompressFile
+            }
+        }
+
+        actionFn(sourceFilename, outputFilename)
+    }
+
+}
