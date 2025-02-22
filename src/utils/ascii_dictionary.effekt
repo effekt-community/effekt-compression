@@ -1,6 +1,10 @@
 import array
 import src/utils/resizable_array
 
+/*
+* Dictionary with keys being bytes (hence ASCII dictionary) and values of type T
+*/
+
 record AsciiDictionary[T](rawContent: Array[Option[T]])
 
 def emptyDict[T](): AsciiDictionary[T] = 

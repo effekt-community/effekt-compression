@@ -48,6 +48,8 @@ def chunkReader(): (Int, ByteArray) / read[Byte] = {
     (offset, buffer)
 }
 
+/// Find the longest match in the look-ahead buffer for the given processed byte.
+/// Returns offset and length of the match.
 def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], lookAheadBuffer: CircularArray[Byte]) = {
     // keeps track of the back-offset in the search buffer
     var offsetCounter = searchBuffer.elementCount.get()
@@ -99,6 +101,7 @@ def find_longest_match(processedByte: Byte, searchBuffer: CircularArray[Byte], l
     }
 }
 
+/// Fill the look-ahead buffer with the first 18 bytes from the data chunk.
 def init_look_ahead_buffer(lookAheadBuffer: CircularArray[Byte], buffer: ByteArray, byteCount: Int): Int = {
     val lookAheadBufferSize = lookAheadBuffer.rawContent.size
 
@@ -117,6 +120,7 @@ def init_look_ahead_buffer(lookAheadBuffer: CircularArray[Byte], buffer: ByteArr
     bufferIndex
 }
 
+/// Count the number of tokens in the data chunk, to be able to calculate the bit offset before next chunk.
 def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
     var tokenCount = 0
 
@@ -176,19 +180,8 @@ def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
     tokenCount
 }
 
-
-
-def show(c: CircularArray[Byte]) = {
-    var result = "["
-    c.foreachIndex { (i, e) =>
-        val value = e.toInt.toChar.toString
-        result = result ++ value ++ ", "
-    }
-
-    result = result ++ "]"
-    result
-}
-
+/// Compress the data chunk (block) into the output stream.
+/// Count the tokens first and then compress the data chunk.
 def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit[Byte], read[Byte]} = {
     with streamWriter
     with on[OutOfBounds].report
@@ -270,6 +263,8 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
     println("LZSS block compression was successful")
 }
 
+/// Entry point for compressing a data stream.
+/// Reads the stream chunk by chunk and runs LZSS on it.
 def compressReaderIntoStream() = {
     println("Starting LZSS compression...")
     loop { {l} =>
@@ -299,6 +294,9 @@ def stopHandler() {prog: => Unit / stop} = {
     }
 }
 
+/// Decompress a single LZSS block.
+/// Read token count first, then read token by token and decompress.
+/// Read number of bits to ignore at the end and skip them
 def decompressBlock() = {
     with streamReader
     with streamWriter
@@ -346,6 +344,8 @@ def decompressBlock() = {
     println("LZSS block decompression was successful")
 }
 
+/// Entry point for decompressing a data stream.
+/// Reads the stream chunk by chunk. Restores the data back according to the search buffer based on the read tokens.
 def decompressReaderIntoStream() = {
     println("Starting LZSS decompression...")
 

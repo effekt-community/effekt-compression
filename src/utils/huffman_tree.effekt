@@ -35,6 +35,8 @@ def treePrioQueue(): Heap[HuffmanTree] = {
 }
 
 
+/// Builds a Huffman tree from a frequency map.
+/// Return the root of the built Huffman tree.
 def build_tree(frequencyMap: AsciiDictionary[Int]): HuffmanTree = {
     val prioQueue = treePrioQueue()
 
@@ -68,6 +70,7 @@ def build_tree(frequencyMap: AsciiDictionary[Int]): HuffmanTree = {
     root
 }
 
+/// Builds a huffman-codes dictionary from a huffman tree.
 def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
     var map = emptyDict[String]()
 
@@ -89,6 +92,9 @@ def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
     map
 }
 
+/// Serializes a Huffman tree into a string using preorder traversal.
+/// Leaf nodes are serialized as "1|<char>|", where <char> is the ASCII value of the character.
+/// Internal nodes are serialized as "0".
 def huffman_serialize(root: HuffmanTree): String = {
     var preorder_str = ""
 
@@ -107,6 +113,8 @@ def huffman_serialize(root: HuffmanTree): String = {
     preorder(root, preorder_str)
 }
 
+/// Deserializes a Huffman tree from a string.
+/// The string must be in the format produced by huffman_serialize.
 def huffman_deserialize(treeString: String): HuffmanTree = {
     def build_tree(index: Int): (HuffmanTree, Int) = {
         var newIndex = index

@@ -1,6 +1,10 @@
 import stream
 
+/*
+ * Utility functions for reading and writing bits and bytes.
+ */
 
+/// Make a bit mask that has 1s from fromBit to toBit
 def makeBitMask(fromBit: Int, toBit: Int): Int = {
     var result = 0.0
     each (fromBit, toBit) {
@@ -10,12 +14,16 @@ def makeBitMask(fromBit: Int, toBit: Int): Int = {
     result.toInt
 }
 
+/// Object representing bit/byte writing operations.
 interface StreamWriter {
     def writeBit(bit: Bool): Unit / emit[Byte]
     def writeByte(byte: Byte): Unit / emit[Byte]
     def flush(): Unit / emit[Byte]
 }
 
+/// Handler for StreamWriter interface.
+/// Keeps an internal buffer for writing bits and bytes, so no data is lost.
+/// At the end of the writing, flush (emit) the buffer.
 def streamWriter { prog: => Unit / StreamWriter }: Unit / emit[Byte] = {
     var buffer = 0
     var bitCount = 0
@@ -118,11 +126,14 @@ def numberToBitsStream(number: Int, bitsToWrite: Int) = {
     }
 }
 
+/// Object representing bit/byte reading operations
 interface StreamReader {
     def readBit(): Bool / read[Byte]
     def readByte(): Byte / read[Byte]
 }
 
+/// Handler for StreamReader interface.
+/// Keeps an internal buffer for reading bits and bytes, so no data is lost.
 def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
     var buffer = 0
     var curBit = 0
@@ -173,6 +184,7 @@ def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
     }
 }
 
+/// Read an integer (4 bytes) from the stream of bytes.
 def bytesToIntegerReader() = {
     val byte4 = do readByte()
     val byte3 = do readByte()
@@ -182,18 +194,9 @@ def bytesToIntegerReader() = {
     bitwiseShl(byte1.toInt, 24) + bitwiseShl(byte2.toInt, 16) + bitwiseShl(byte3.toInt, 8) + byte4.toInt  
 }
 
+/// Read an integer from the stream of bits.
+/// Specify how many bits to read.
 def bitsToNumberReader(bitsToRead: Int) = {
-    /*var result = 0
-    each (0, bitsToRead) { _ =>
-        result = bitwiseShl(result, 1)
-        val bit = do readBit()
-        if (bit) {
-            result = result + 1
-        }
-        println(result.show)
-    }
-    result*/
-
     var result = 0.0
     each (0, bitsToRead) {
         exp =>

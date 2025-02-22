@@ -1,5 +1,13 @@
 import array
 
+/*
+* Circular data structure for maintaining sliding window.
+*
+* The head always points to the first element of the array. 
+*
+* The elementCount is used to keep track of the number of elements in the array.
+*/
+
 record CircularArray[T](rawContent: Array[Option[T]], head: Ref[Int], elementCount: Ref[Int])
 
 def circular_array[T](size: Int): CircularArray[T] = 
@@ -9,6 +17,8 @@ def is_full[T](circularArray: CircularArray[T]): Bool = {
     circularArray.elementCount.get() == circularArray.rawContent.size
 }
 
+/// Appends element to the circular array. 
+/// When the array is full, the head is moved to the next element and old head is overwritten.
 def append[T](circularArray: CircularArray[T], element: T): Unit / {} = {
     val addIndex = mod(circularArray.head.get() + circularArray.elementCount.get(), circularArray.rawContent.size)
 
@@ -31,6 +41,8 @@ def get[T](circularArray: CircularArray[T], index: Int): T / Exception[OutOfBoun
     }
 }
 
+/// Removes and returns the first element from the circular array (head position).
+/// Moves the head position to the next element.
 def popFront[T](circularArray: CircularArray[T]): Option[T] / Exception[OutOfBounds] = {
     if (circularArray.elementCount.get() == 0) {
         None()

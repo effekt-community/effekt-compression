@@ -4,7 +4,8 @@ import args
 import src/lib
 
 /// Example usage:
-/// effekt.sh /home/ondra/semestr5/epe/effekt-compression/src/compress.effekt --backend js --includes /home/ondra/semestr5/epe/effekt-compression -- README.md huffman compress test.bin
+/// effekt.sh src/compress.effekt --backend js --includes . -- README.md huffman compress test.bin
+/// Note that our working directory must be the directory of the project.
 def main(): Unit = {
     val args: List[String] = commandLineArgs()
     if (not(args.size == 4)) { 

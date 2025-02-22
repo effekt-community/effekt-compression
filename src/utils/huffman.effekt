@@ -17,6 +17,9 @@ import src/utils/huffman_tree
 /// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+----------------------------------+
 ///
 /// Numbers are in little endian - less significant bytes/bits first
+/// 
+/// How the huffman coding works is well explained here:
+/// https://www.programiz.com/dsa/huffman-coding
 
 record HeaderStreamData(serializedTree: String, contentCharacterCount: Int, headerByteLength: Int, bitsToIgnoreInLastHeaderByte: Int)
 record HeaderData(root: HuffmanTree, contentCharacterCount: Int)
@@ -96,10 +99,10 @@ def get_header_metadata(serializedTree: String): (Int, Int) = {
         byteLength = byteLength + 1
     }
     
-    (byteLength, 8 - leftovers)
+    (byteLength, mod(8 - leftovers, 8))
 }
 
-
+/// Make stream from the serialized huffman tree.
 def treeStream(serializedTree: String) = {
     var idx = 0
     loop { {l} =>
@@ -186,6 +189,8 @@ def writeCompressedStream(headerData: HeaderData, contentsData: ContentsData) = 
     }
 }
 
+/// Entry point for compressing a data stream.
+/// Reads the stream chunk by chunk, makes the huffman tree and encodes the data according to the codes.
 def compressReaderIntoStream() = {
     loop { {l} =>
         println("Starting Huffman block compression...")
@@ -209,6 +214,9 @@ def compressReaderIntoStream() = {
 ///     DECOMPRESSION     \\\
 /// ********************* \\\
 
+///
+/// Decode the header of the compressed block
+/// 
 def headerReader() = {
     val headerByteLength = bytesToIntegerReader()
     val bitsToIgnoreInLastHeaderByte = (do readByte()).toInt
@@ -243,6 +251,7 @@ def headerReader() = {
     HeaderData(huffman_deserialize(serializedTree), contentCharacterCount)
 }
 
+/// Read and decode the content of the compressed block by the huffman tree.
 def readContentsStream(headerData: HeaderData) = {
     var characterCounter = 0
 
@@ -280,6 +289,8 @@ def decompressBlock() = {
     readContentsStream(headerData)
 }
 
+/// Entry point for decompressing a data stream.
+/// Reads the stream chunk by chunk, decodes the huffman tree and restores the data back according to the codes.
 def decompressReaderIntoStream() = {
     loop { {l} =>
         println("Starting Huffman block decompression...")
