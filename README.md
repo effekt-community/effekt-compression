@@ -7,7 +7,7 @@ This project is part of the *Effective Programming with Effects* course at the *
 - [Description](#description)
 - [First steps](#first-steps)
 - [Useful commands](#useful-commands)
-  - [Effekt commands](#effekt-commands)
+  - [Running the project](#running-the-project)
   - [Nix-related commands](#nix-related-commands)
 - [Example projects](#example-projects-using-this-template)
 - [Repository structure](#repository-structure)
@@ -43,14 +43,26 @@ After using this template, follow these steps to set up your project:
 
 ## Useful commands
 
-### Effekt commands
+### Running the project
 
 Run the main file:
 ```sh
-effekt src/main.effekt
+effekt src/compress.effekt [SOURCE_FILENAME] [METHOD] [COMPRESS/DECOMPRESS] [OUTPUT_FILENAME]
 ```
-This (like many other Effekt commands) uses the JavaScript backend by default.
-To use a different backend, add the `--backend <backend>` flag.
+
+Where:
+- [SOURCE_FILENAME] is the path to the file we want to compress
+- [METHOD] the compression method we want to use. Allowed values are `huffman` or `lzss`.
+- [COMPRESS/DECOMPRESS] specification whether we want to compress or decompress. Allowed values are `compress` or `decompress`.
+- [OUTPUT_FILENAME] path to the newly created file
+
+Example usage:
+
+```sh
+effekt.sh src/compress.effekt --backend js --includes . -- README.md huffman compress test.bin
+```
+
+! This assumes we are currently in the project directory, otherwise absolute paths are needed !
 
 Run the tests:
 ```sh
