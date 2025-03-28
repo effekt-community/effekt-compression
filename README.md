@@ -1,3 +1,9 @@
+> [!NOTE]
+> This is a community-maintained fork of a MIT-licensed student project in the *Effective Programming with Effects* course in winter semester 2024/2025.
+> Be warned that this is not an officially endorsed project, the code in this repository may be not idiomatic Effekt.
+> 
+> The original repository is https://github.com/0-mar/effekt-compression
+
 # Hufmann coding and LZ77 implementation
 
 This project is part of the *Effective Programming with Effects* course at the *University of Tübingen*.
