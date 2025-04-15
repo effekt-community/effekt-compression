@@ -104,6 +104,8 @@ def get_header_metadata(serializedTree: String): (Int, Int) = {
 
 /// Make stream from the serialized huffman tree.
 def treeStream(serializedTree: String) = {
+    with on[WrongFormat].panic; // for `.toInt` below
+
     var idx = 0
     loop { {l} =>
         if (idx >= serializedTree.length) {
@@ -123,7 +125,7 @@ def treeStream(serializedTree: String) = {
                     digit = serializedTree.unsafeCharAt(idx)
                 }
 
-                var convertedNum = result.unsafeToInt
+                var convertedNum = result.toInt
 
                 do writeByte(convertedNum.toByte)
             case _ => ()

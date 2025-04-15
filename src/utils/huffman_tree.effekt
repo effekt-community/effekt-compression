@@ -116,6 +116,8 @@ def huffman_serialize(root: HuffmanTree): String = {
 /// Deserializes a Huffman tree from a string.
 /// The string must be in the format produced by huffman_serialize.
 def huffman_deserialize(treeString: String): HuffmanTree = {
+    with on[WrongFormat].panic; // for `.toInt` below
+
     def build_tree(index: Int): (HuffmanTree, Int) = {
         var newIndex = index
 
@@ -131,7 +133,7 @@ def huffman_deserialize(treeString: String): HuffmanTree = {
                 digit = treeString.unsafeCharAt(newIndex)
             }
             newIndex = newIndex + 1
-            var convertedNum = result.unsafeToInt
+            var convertedNum = result.toInt
             (Leaf(convertedNum.toByte, 0), newIndex)
 
         } else {
