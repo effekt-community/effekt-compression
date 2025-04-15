@@ -1,5 +1,5 @@
 import src/utils/ascii_dictionary
-import src/utils/heap
+import heap
 
 type HuffmanTree {
     Leaf(char: Byte, freq: Int)

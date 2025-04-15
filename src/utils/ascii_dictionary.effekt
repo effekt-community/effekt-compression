@@ -1,5 +1,5 @@
 import array
-import src/utils/resizable_array
+import resizable_array
 
 /*
 * Dictionary with keys being bytes (hence ASCII dictionary) and values of type T

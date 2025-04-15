@@ -1,7 +1,7 @@
 import stream
 import io
 import io/error
-import src/utils/heap
+import heap
 import src/utils/ascii_dictionary
 import bytearray
 import src/utils/stream_io
