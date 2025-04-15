@@ -31,7 +31,7 @@ def treePrioQueue(): Heap[HuffmanTree] = {
         }
     }
 
-    heap[HuffmanTree](treeCmp) 
+    heap[HuffmanTree](treeCmp)
 }
 
 
@@ -78,7 +78,7 @@ def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
 
     def go(node: HuffmanTree, code: String): Unit = {
         node match {
-            case Leaf(char, _) => 
+            case Leaf(char, _) =>
                 map.update(char, Some(code))
             case Node(_, l, r) => {
                 go(l, code ++ "0")
@@ -101,9 +101,9 @@ def huffman_serialize(root: HuffmanTree): String = {
     def preorder(node: HuffmanTree, treeString: String): String = {
         var result = treeString
         node match {
-            case Leaf(char, freq) => 
+            case Leaf(char, freq) =>
                 result ++ "1|" ++ char.toInt.show ++ "|"
-            case Node(_, l, r) => 
+            case Node(_, l, r) =>
                 result = result ++ "0"
                 result = preorder(l, result)
                 result = preorder(r, result)

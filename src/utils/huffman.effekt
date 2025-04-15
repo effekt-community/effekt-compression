@@ -8,7 +8,7 @@ import src/utils/stream_io
 import src/utils/huffman_tree
 
 /// Huffman block structure:
-/// 
+///
 /// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+----------------------------------+
 /// | 4 bytes - header length (in bytes)           | 1 byte - how many bits to ignore in  | 4 bytes - number of encoded characters | Header                  | Encoded content    | 3 bits - how many bits to ignore |
 /// |                                              | the last byte of the header          |                                        | serialized huffman tree |                    | before next block                |
@@ -17,7 +17,7 @@ import src/utils/huffman_tree
 /// +----------------------------------------------+--------------------------------------+----------------------------------------+-------------------------+--------------------+----------------------------------+
 ///
 /// Numbers are in little endian - less significant bytes/bits first
-/// 
+///
 /// How the huffman coding works is well explained here:
 /// https://www.programiz.com/dsa/huffman-coding
 
@@ -28,7 +28,7 @@ record ContentsData(table: AsciiDictionary[String], content: ByteArray)
 ///
 /// Read chunk of the stream and make a character-frequency map (dictionary)
 /// from it. Return the map, read chunk and its length.
-/// 
+///
 def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[Byte] = {
     var dict = emptyDict[Int]()
 
@@ -64,7 +64,7 @@ def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[
 
 ///
 /// Return tuple (header length in bytes, amount of bits in the second last byte used by the tree)
-/// 
+///
 def get_header_metadata(serializedTree: String): (Int, Int) = {
     var bitLength = 0
 
@@ -77,7 +77,7 @@ def get_header_metadata(serializedTree: String): (Int, Int) = {
         serializedTree.unsafeCharAt(idx) match {
             case '0' => bitLength = bitLength + 1
             case '1' => bitLength = bitLength + 1
-            case '|' => 
+            case '|' =>
                 idx = idx + 1
                 var digit = serializedTree.unsafeCharAt(idx)
                 while (not(digit == '|')) {
@@ -98,7 +98,7 @@ def get_header_metadata(serializedTree: String): (Int, Int) = {
     if (leftovers > 0) {
         byteLength = byteLength + 1
     }
-    
+
     (byteLength, mod(8 - leftovers, 8))
 }
 
@@ -113,7 +113,7 @@ def treeStream(serializedTree: String) = {
         serializedTree.unsafeCharAt(idx) match {
             case '0' => do writeBit(false)
             case '1' => do writeBit(true)
-            case '|' => 
+            case '|' =>
                 idx = idx + 1
                 var digit = serializedTree.unsafeCharAt(idx)
                 var result = ""
@@ -145,7 +145,7 @@ def writeHeaderStream(data: HeaderStreamData) = {
 
 def writeCodeStream(code: String) = {
     each(0, code.length) {
-        i => 
+        i =>
             code.unsafeCharAt(i) match {
                 case '0' => do writeBit(false)
                 case '1' => do writeBit(true)
@@ -157,10 +157,10 @@ def writeCodeStream(code: String) = {
 def writeContentsStream(contentsData: ContentsData) = {
     var bitLength = 0
     contentsData.content.foreach() {
-        byte => 
+        byte =>
             var value = contentsData.table.unsafeGet(byte)
             value match {
-                case Some(code) => 
+                case Some(code) =>
                     bitLength = bitLength + code.length
                     writeCodeStream(code)
                 case None() => ()
@@ -216,7 +216,7 @@ def compressReaderIntoStream() = {
 
 ///
 /// Decode the header of the compressed block
-/// 
+///
 def headerReader() = {
     val headerByteLength = bytesToIntegerReader()
     val bitsToIgnoreInLastHeaderByte = (do readByte()).toInt
@@ -231,7 +231,7 @@ def headerReader() = {
     while (bitCounter < headerBitLength) {
         val bit = do readBit()
         bit match {
-            case true => 
+            case true =>
                 serializedTree = serializedTree ++ "1|"
                 val char = do readByte()
                 var byteInt = char.toInt
@@ -261,10 +261,10 @@ def readContentsStream(headerData: HeaderData) = {
 
         while (not(done)) {
             node match {
-                case Leaf(char, _) => 
+                case Leaf(char, _) =>
                     do writeByte(char)
                     done = true
-                case Node(_, l, r) => 
+                case Node(_, l, r) =>
                     val bit = do readBit()
                     node = if (bit) r else l
             }

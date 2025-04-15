@@ -7,7 +7,7 @@ import resizable_array
 
 record AsciiDictionary[T](rawContent: Array[Option[T]])
 
-def emptyDict[T](): AsciiDictionary[T] = 
+def emptyDict[T](): AsciiDictionary[T] =
     AsciiDictionary[T](array[Option[T]](256, None()))
 
 def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
@@ -28,14 +28,14 @@ def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit = {
 ///
 /// Returns the array containing all keys and number of keys in the array,
 /// because it is possible that  the array will be larger
-/// 
+///
 def keys[T](dict: AsciiDictionary[T]): (Array[Byte], Int) = {
     val arr = resizableArray[Byte]()
     var lastIdx = -1
     dict.rawContent.foreachIndex {
         (index, value) => value match {
             case None() => ()
-            case Some(x) => lastIdx = arr.add(index.toByte); () 
+            case Some(x) => lastIdx = arr.add(index.toByte); ()
         }
     }
     (arr.rawContentPtr.get[Array[Byte]](), lastIdx + 1)
