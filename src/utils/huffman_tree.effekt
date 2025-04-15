@@ -1,5 +1,5 @@
 import src/utils/ascii_dictionary
-import src/utils/heap
+import heap
 
 type HuffmanTree {
     Leaf(char: Byte, freq: Int)
@@ -31,7 +31,7 @@ def treePrioQueue(): Heap[HuffmanTree] = {
         }
     }
 
-    heap[HuffmanTree](treeCmp) 
+    heap[HuffmanTree](treeCmp)
 }
 
 
@@ -78,7 +78,7 @@ def huffmanCodes(root: HuffmanTree): AsciiDictionary[String] = {
 
     def go(node: HuffmanTree, code: String): Unit = {
         node match {
-            case Leaf(char, _) => 
+            case Leaf(char, _) =>
                 map.update(char, Some(code))
             case Node(_, l, r) => {
                 go(l, code ++ "0")
@@ -101,9 +101,9 @@ def huffman_serialize(root: HuffmanTree): String = {
     def preorder(node: HuffmanTree, treeString: String): String = {
         var result = treeString
         node match {
-            case Leaf(char, freq) => 
+            case Leaf(char, freq) =>
                 result ++ "1|" ++ char.toInt.show ++ "|"
-            case Node(_, l, r) => 
+            case Node(_, l, r) =>
                 result = result ++ "0"
                 result = preorder(l, result)
                 result = preorder(r, result)
@@ -116,6 +116,8 @@ def huffman_serialize(root: HuffmanTree): String = {
 /// Deserializes a Huffman tree from a string.
 /// The string must be in the format produced by huffman_serialize.
 def huffman_deserialize(treeString: String): HuffmanTree = {
+    with on[WrongFormat].panic; // for `.toInt` below
+
     def build_tree(index: Int): (HuffmanTree, Int) = {
         var newIndex = index
 
@@ -131,7 +133,7 @@ def huffman_deserialize(treeString: String): HuffmanTree = {
                 digit = treeString.unsafeCharAt(newIndex)
             }
             newIndex = newIndex + 1
-            var convertedNum = result.unsafeToInt
+            var convertedNum = result.toInt
             (Leaf(convertedNum.toByte, 0), newIndex)
 
         } else {
