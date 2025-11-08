@@ -31,7 +31,7 @@ def treePrioQueue(): Heap[HuffmanTree] = {
         }
     }
 
-    heap[HuffmanTree](treeCmp)
+    heap[HuffmanTree](box treeCmp)
 }
 
 

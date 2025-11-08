@@ -142,7 +142,7 @@ def writeHeaderStream(data: HeaderStreamData) = {
     integerToBytesStream(data.contentCharacterCount)
 
     treeStream(data.serializedTree)
-    do flush()  // bit padding before the content
+    do stream_io::flush()  // bit padding before the content
 }
 
 def writeCodeStream(code: String) = {

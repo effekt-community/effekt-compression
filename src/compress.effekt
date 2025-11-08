@@ -4,11 +4,11 @@ import args
 import src/lib
 
 /// Example usage:
-/// effekt.sh src/compress.effekt --backend js --includes . -- README.md huffman compress test.bin
+/// effekt src/compress.effekt --backend js --includes . -- README.md huffman compress test.bin
 /// Note that our working directory must be the directory of the project.
 def main(): Unit = {
     val args: List[String] = commandLineArgs()
-    if (not(args.size == 4)) { 
+    if (not(args.size == 4)) {
         println("Invalid arguments amount, run `compress [SOURCE_FILENAME] [METHOD] [COMPRESS/DECOMPRESS] [OUTPUT_FILENAME]`")
     } else {
         with on[OutOfBounds].report
@@ -19,20 +19,14 @@ def main(): Unit = {
 
         def errorMessage(x: String, y: String) = println("Invalid arguments, run `compress [SOURCE_FILENAME] [METHOD] [COMPRESS/DECOMPRESS] [OUTPUT_FILENAME]`")
 
-        var actionFn = errorMessage
+        val actionFn = (method, action) match {
+          case ("huffman", "compress") => box huffmanCompressFile
+          case ("huffman", "decompress") => box huffmanDecompressFile
 
-        if (method == "huffman") {
-            if (action == "compress") {
-                actionFn = huffmanCompressFile
-            } else if (action == "decompress") {
-                actionFn = huffmanDecompressFile
-            }
-        } else if (method == "lzss") {
-            if (action == "compress") {
-                actionFn = lzssCompressFile
-            } else if (action == "decompress") {
-                actionFn = lzssDecompressFile
-            }
+          case ("lzss", "compress") => box lzssCompressFile
+          case ("lzss", "decompress") => box lzssDecompressFile
+
+          case _ => box errorMessage
         }
 
         actionFn(sourceFilename, outputFilename)
