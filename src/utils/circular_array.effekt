@@ -34,7 +34,7 @@ def append[T](circularArray: CircularArray[T], element: T): Unit / {} = {
 }
 
 def get[T](circularArray: CircularArray[T], index: Int): T / Exception[OutOfBounds] = {
-    val value = circularArray.rawContent.unsafeGet(mod((circularArray.head.get() + index), circularArray.rawContent.size))
+    val value = circularArray.rawContent.get(mod((circularArray.head.get() + index), circularArray.rawContent.size))
     value match {
         case Some(v) => v
         case None() => do raise(OutOfBounds(), "Index out of bounds: " ++ (mod((circularArray.head.get() + index), circularArray.rawContent.size).show ++ ", array size: " ++ circularArray.rawContent.size.show ++ ", element count: " ++ circularArray.elementCount.get().show))
@@ -48,7 +48,7 @@ def popFront[T](circularArray: CircularArray[T]): Option[T] / Exception[OutOfBou
         None()
     } else {
         val element = circularArray.get(0)
-        circularArray.rawContent.unsafeSet(circularArray.head.get(), None())
+        circularArray.rawContent.set(circularArray.head.get(), None())
         circularArray.head.set(mod((circularArray.head.get() + 1), circularArray.rawContent.size))
         circularArray.elementCount.set(circularArray.elementCount.get() - 1)
 
