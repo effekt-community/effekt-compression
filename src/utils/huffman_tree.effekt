@@ -43,8 +43,8 @@ def build_tree(frequencyMap: AsciiDictionary[Int]): HuffmanTree = {
     val (keys, size) = frequencyMap.keys()
 
     each(0, size) { i =>
-        val char = keys.unsafeGet(i)
-        var value = frequencyMap.unsafeGet(char)
+        val char = keys.get(i)
+        var value = frequencyMap.get(char)
         value match {
           case Some(freq) => prioQueue.insert(Leaf(char, freq))
           case None() => ()

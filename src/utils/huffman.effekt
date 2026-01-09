@@ -39,7 +39,7 @@ def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[
     def go(): Unit = try {
         val readByte = do read[Byte]()
 
-        buffer.unsafeSet(offset, readByte)
+        buffer.set(offset, readByte)
         offset = offset + 1
 
         val result = dict.get(readByte)
@@ -160,7 +160,7 @@ def writeContentsStream(contentsData: ContentsData) = {
     var bitLength = 0
     contentsData.content.foreach() {
         byte =>
-            var value = contentsData.table.unsafeGet(byte)
+            var value = contentsData.table.get(byte)
             value match {
                 case Some(code) =>
                     bitLength = bitLength + code.length

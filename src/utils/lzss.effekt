@@ -31,7 +31,7 @@ def chunkReader(): (Int, ByteArray) / read[Byte] = {
     def go(): Unit = try {
         val readByte = do read[Byte]()
 
-        buffer.unsafeSet(offset, readByte)
+        buffer.set(offset, readByte)
         offset = offset + 1
 
         // read only until we have space in the buffer
@@ -112,7 +112,7 @@ def init_look_ahead_buffer(lookAheadBuffer: CircularArray[Byte], buffer: ByteArr
             loop.break()
         }
 
-        val byte = buffer.unsafeGet(i)
+        val byte = buffer.get(i)
         lookAheadBuffer.append(byte)
         bufferIndex = bufferIndex + 1
     }
@@ -130,7 +130,7 @@ def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
     val searchBuffer = circular_array[Byte](searchBufferSize)
     val lookAheadBuffer = circular_array[Byte](lookAheadBufferSize)
 
-    var processedByte = buffer.unsafeGet(0)
+    var processedByte = buffer.get(0)
     var bufferIndex = init_look_ahead_buffer(lookAheadBuffer, buffer, byteCount)
 
     loop { {l} =>
@@ -156,7 +156,7 @@ def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
                 if (bufferIndex >= byteCount) {
                     loop.break()
                 }
-                lookAheadBuffer.append(buffer.unsafeGet(bufferIndex))
+                lookAheadBuffer.append(buffer.get(bufferIndex))
                 bufferIndex = bufferIndex + 1
             }
 
@@ -171,7 +171,7 @@ def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
 
         // fill one byte to the lookAheadBuffer for the popped 
         if (bufferIndex < byteCount) {
-            lookAheadBuffer.append(buffer.unsafeGet(bufferIndex))
+            lookAheadBuffer.append(buffer.get(bufferIndex))
             bufferIndex = bufferIndex + 1
         }
     
@@ -197,7 +197,7 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
     val tokenCount = count_tokens(buffer, byteCount)
     println("Token count: " ++ tokenCount.show)
 
-    var processedByte = buffer.unsafeGet(0)
+    var processedByte = buffer.get(0)
     var bufferIndex = init_look_ahead_buffer(lookAheadBuffer, buffer, byteCount)
     integerToBytesStream(tokenCount)
 
@@ -235,7 +235,7 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
                 if (bufferIndex >= byteCount) {
                     loop.break()
                 }
-                lookAheadBuffer.append(buffer.unsafeGet(bufferIndex))
+                lookAheadBuffer.append(buffer.get(bufferIndex))
                 bufferIndex = bufferIndex + 1
             }
         }
@@ -249,7 +249,7 @@ def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit
 
         // fill one byte to the lookAheadBuffer for the popped one
         if (bufferIndex < byteCount) {
-            lookAheadBuffer.append(buffer.unsafeGet(bufferIndex))
+            lookAheadBuffer.append(buffer.get(bufferIndex))
             bufferIndex = bufferIndex + 1
         }
     }

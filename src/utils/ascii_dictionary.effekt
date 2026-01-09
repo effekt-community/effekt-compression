@@ -11,14 +11,7 @@ def emptyDict[T](): AsciiDictionary[T] =
     AsciiDictionary[T](array[Option[T]](256, None()))
 
 def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
-    try {
-        dict.rawContent.get(key.toInt)
-    } with Exception[OutOfBounds]{
-        def raise(exception: OutOfBounds, msg: String) = None()
-    }
-
-def unsafeGet[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
-    dict.rawContent.unsafeGet(key.toInt)
+    dict.rawContent.get(key.toInt)
 
 def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit = {
     with on[OutOfBounds].report
