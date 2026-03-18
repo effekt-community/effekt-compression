@@ -13,10 +13,8 @@ def emptyDict[T](): AsciiDictionary[T] =
 def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
     dict.rawContent.get(key.toInt)
 
-def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit = {
-    with on[OutOfBounds].report
+def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit =
     dict.rawContent.set(key.toInt, value)
-}
 
 ///
 /// Returns the array containing all keys and number of keys in the array,

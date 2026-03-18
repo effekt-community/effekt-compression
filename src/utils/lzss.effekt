@@ -169,12 +169,12 @@ def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
             case None() => l.break()
         }
 
-        // fill one byte to the lookAheadBuffer for the popped 
+        // fill one byte to the lookAheadBuffer for the popped
         if (bufferIndex < byteCount) {
             lookAheadBuffer.append(buffer.get(bufferIndex))
             bufferIndex = bufferIndex + 1
         }
-    
+
     }
 
     tokenCount
