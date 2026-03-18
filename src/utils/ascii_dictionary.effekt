@@ -10,12 +10,7 @@ record AsciiDictionary[T](rawContent: Array[Option[T]])
 def emptyDict[T](): AsciiDictionary[T] =
     AsciiDictionary[T](array[Option[T]](256, None()))
 
-def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] = {
-    with on[OutOfBounds].default { None() }
-    dict.rawContent.get(key.toInt)
-}
-
-def unsafeGet[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
+def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
     dict.rawContent.get(key.toInt)
 
 def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit =
