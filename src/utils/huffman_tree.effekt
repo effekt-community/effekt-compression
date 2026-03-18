@@ -43,8 +43,8 @@ def build_tree(frequencyMap: AsciiDictionary[Int]): HuffmanTree = {
     val (keys, size) = frequencyMap.keys()
 
     each(0, size) { i =>
-        val char = keys.unsafeGet(i)
-        var value = frequencyMap.unsafeGet(char)
+        val char = keys.get(i)
+        var value = frequencyMap.get(char)
         value match {
           case Some(freq) => prioQueue.insert(Leaf(char, freq))
           case None() => ()
@@ -116,9 +116,8 @@ def huffman_serialize(root: HuffmanTree): String = {
 /// Deserializes a Huffman tree from a string.
 /// The string must be in the format produced by huffman_serialize.
 def huffman_deserialize(treeString: String): HuffmanTree = {
-    with on[WrongFormat].panic; // for `.toInt` below
-
     def build_tree(index: Int): (HuffmanTree, Int) = {
+        with crash("WrongFormat: Invalid tree format")
         var newIndex = index
 
         var char = treeString.unsafeCharAt(newIndex)

@@ -10,20 +10,16 @@ record AsciiDictionary[T](rawContent: Array[Option[T]])
 def emptyDict[T](): AsciiDictionary[T] =
     AsciiDictionary[T](array[Option[T]](256, None()))
 
-def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
-    try {
-        dict.rawContent.get(key.toInt)
-    } with Exception[OutOfBounds]{
-        def raise(exception: OutOfBounds, msg: String) = None()
-    }
+def get[T](dict: AsciiDictionary[T], key: Byte): Option[T] = {
+    with on[OutOfBounds].default { None() }
+    dict.rawContent.get(key.toInt)
+}
 
 def unsafeGet[T](dict: AsciiDictionary[T], key: Byte): Option[T] =
-    dict.rawContent.unsafeGet(key.toInt)
+    dict.rawContent.get(key.toInt)
 
-def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit = {
-    with on[OutOfBounds].report
+def update[T](dict: AsciiDictionary[T], key: Byte, value: Option[T]): Unit =
     dict.rawContent.set(key.toInt, value)
-}
 
 ///
 /// Returns the array containing all keys and number of keys in the array,

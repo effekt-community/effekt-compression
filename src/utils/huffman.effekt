@@ -39,7 +39,7 @@ def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[
     def go(): Unit = try {
         val readByte = do read[Byte]()
 
-        buffer.unsafeSet(offset, readByte)
+        buffer.set(offset, readByte)
         offset = offset + 1
 
         val result = dict.get(readByte)
@@ -104,7 +104,7 @@ def get_header_metadata(serializedTree: String): (Int, Int) = {
 
 /// Make stream from the serialized huffman tree.
 def treeStream(serializedTree: String) = {
-    with on[WrongFormat].panic; // for `.toInt` below
+    with crash("WrongFormat: Invalid tree format")
 
     var idx = 0
     loop { {l} =>
