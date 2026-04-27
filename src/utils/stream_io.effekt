@@ -128,13 +128,13 @@ def numberToBitsStream(number: Int, bitsToWrite: Int) = {
 
 /// Object representing bit/byte reading operations
 interface StreamReader {
-    def readBit(): Bool / read[Byte]
-    def readByte(): Byte / read[Byte]
+    def readBit(): Bool / next[Byte]
+    def readByte(): Byte / next[Byte]
 }
 
 /// Handler for StreamReader interface.
 /// Keeps an internal buffer for reading bits and bytes, so no data is lost.
-def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
+def streamReader { prog: => Unit / StreamReader }: Unit / {next[Byte], stop} = {
     var buffer = 0
     var curBit = 0
     var readBits = 0
@@ -145,7 +145,7 @@ def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
         def readBit() = {
             resume {
                 if (curBit <= 0) {
-                    val readByte = do read[Byte]
+                    val readByte = do next[Byte]
                     buffer = readByte.toInt
                     curBit = 128
                     readBits = 0
@@ -166,9 +166,9 @@ def streamReader { prog: => Unit / StreamReader }: Unit / {read[Byte], stop} = {
         def readByte() = {
             resume {
                 if (readBits == 0) {
-                    do read[Byte]
+                    do next[Byte]
                 } else {
-                    val readByte = do read[Byte]
+                    val readByte = do next[Byte]
 
                     val newBuffer = readByte.toInt
                     val unreadBits = 8 - readBits

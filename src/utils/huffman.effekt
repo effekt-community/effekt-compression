@@ -29,7 +29,7 @@ record ContentsData(table: AsciiDictionary[String], content: ByteArray)
 /// Read chunk of the stream and make a character-frequency map (dictionary)
 /// from it. Return the map, read chunk and its length.
 ///
-def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[Byte] = {
+def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / next[Byte] = {
     var dict = emptyDict[Int]()
 
     val chunkSize = 4096
@@ -37,7 +37,7 @@ def characterCompressionReader(): (AsciiDictionary[Int], Int, ByteArray) / read[
     var offset = 0
 
     def go(): Unit = try {
-        val readByte = do read[Byte]()
+        val readByte = do next[Byte]()
 
         buffer.set(offset, readByte)
         offset = offset + 1
