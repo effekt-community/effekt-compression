@@ -23,13 +23,13 @@ import bytearray
 /// The offset is the starting position of a match. It is the number of bytes one needs to go back in the search buffer.
 /// The length is the number of bytes to copy from the search buffer.
 
-def chunkReader(): (Int, ByteArray) / read[Byte] = {
+def chunkReader(): (Int, ByteArray) / next[Byte] = {
     val chunkSize = 2 * 4096
     val buffer = bytearray::allocate(chunkSize)
     var offset = 0
 
     def go(): Unit = try {
-        val readByte = do read[Byte]()
+        val readByte = do next[Byte]()
 
         buffer.set(offset, readByte)
         offset = offset + 1
@@ -182,7 +182,7 @@ def count_tokens(buffer: ByteArray, byteCount: Int): Int = {
 
 /// Compress the data chunk (block) into the output stream.
 /// Count the tokens first and then compress the data chunk.
-def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit[Byte], read[Byte]} = {
+def writeCompressedBlockStream(buffer: ByteArray, byteCount: Int): Unit / { emit[Byte], next[Byte]} = {
     with streamWriter
     with on[OutOfBounds].report
 
